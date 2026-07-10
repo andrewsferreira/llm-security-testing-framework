@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,6 +12,9 @@ class TargetType(StrEnum):
     GENERIC_HTTP = "generic_http"
     MOCK = "mock"
     PROVIDER = "provider"
+
+
+ProviderName = Literal["openai", "anthropic"]
 
 
 class TargetConfig(BaseModel):
@@ -39,6 +43,14 @@ class TargetConfig(BaseModel):
 
     headers: dict[str, str] = Field(default_factory=dict)
     auth_token_env: str | None = None
+
+    # Only used when type == "provider" (targets/provider_adapter.py), to speak a real LLM
+    # provider's native chat-completions API instead of the framework's generic envelope.
+    # Entirely optional: never required to use this framework, and off unless explicitly
+    # configured with an env var holding the provider API key.
+    provider: ProviderName | None = None
+    model: str | None = None
+    system_prompt: str | None = None
 
     def endpoint_url(self, endpoint: str) -> str:
         return f"{self.base_url.rstrip('/')}/{endpoint.lstrip('/')}"

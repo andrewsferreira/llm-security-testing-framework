@@ -29,8 +29,6 @@ async def retry_async[T](
             if attempt >= retries:
                 raise
             delay = backoff_seconds * (2**attempt)
-            logger.debug(
-                "retrying after error", extra={"attempt": attempt, "delay_seconds": delay}
-            )
+            logger.debug("retrying after error", extra={"attempt": attempt, "delay_seconds": delay})
             await asyncio.sleep(delay)
             attempt += 1

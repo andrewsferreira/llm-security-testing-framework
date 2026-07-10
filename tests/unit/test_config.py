@@ -52,8 +52,7 @@ def test_missing_target_raises_config_error(tmp_path: Path) -> None:
 def test_unknown_report_format_raises_config_error(tmp_path: Path) -> None:
     bad = tmp_path / "bad-format.yaml"
     bad.write_text(
-        "target:\n  base_url: http://localhost:8000\n"
-        "reporting:\n  formats: [json, pdf]\n"
+        "target:\n  base_url: http://localhost:8000\nreporting:\n  formats: [json, pdf]\n"
     )
     with pytest.raises(ConfigError, match="Unsupported report format"):
         load_config(bad)
@@ -69,8 +68,7 @@ def test_external_target_rejected_by_default(tmp_path: Path) -> None:
 def test_external_target_allowed_when_flagged(tmp_path: Path) -> None:
     ok = tmp_path / "external-ok.yaml"
     ok.write_text(
-        "target:\n  base_url: http://example.com\n"
-        "security:\n  allow_external_targets: true\n"
+        "target:\n  base_url: http://example.com\nsecurity:\n  allow_external_targets: true\n"
     )
     cfg = load_config(ok)
     assert cfg.security.allow_external_targets is True

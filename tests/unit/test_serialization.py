@@ -17,9 +17,7 @@ def test_to_jsonable_converts_pydantic_model() -> None:
 
 def test_to_jsonable_recurses_into_containers() -> None:
     data = {"items": [_Sample(name="a", value=1), _Sample(name="b", value=2)]}
-    assert to_jsonable(data) == {
-        "items": [{"name": "a", "value": 1}, {"name": "b", "value": 2}]
-    }
+    assert to_jsonable(data) == {"items": [{"name": "a", "value": 1}, {"name": "b", "value": 2}]}
 
 
 def test_resolve_output_path_allows_nested_files(tmp_path: Path) -> None:
