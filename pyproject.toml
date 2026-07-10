@@ -1,0 +1,136 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llmsec"
+version = "0.1.0"
+description = "A modular security testing framework for LLM-backed chatbots, agents, and tool-calling APIs."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+authors = [{ name = "Andrews Ferreira" }]
+keywords = [
+    "llm-security",
+    "ai-security",
+    "prompt-injection",
+    "jailbreak",
+    "security-testing",
+    "appsec",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "typer>=0.13",
+    "httpx>=0.27",
+    "PyYAML>=6.0",
+    "Jinja2>=3.1",
+    "rich>=13.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.7",
+    "mypy>=1.13",
+    "bandit[toml]>=1.7",
+    "pip-audit>=2.7",
+    "types-PyYAML>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/andrewsferreira/llm-security-testing-framework"
+Repository = "https://github.com/andrewsferreira/llm-security-testing-framework"
+Issues = "https://github.com/andrewsferreira/llm-security-testing-framework/issues"
+
+[project.scripts]
+llmsec = "llmsec.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llmsec"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"payloads" = "llmsec/payloads"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src",
+    "payloads",
+    "README.md",
+    "LICENSE",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "lab", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # pycodestyle / pyflakes
+    "I",             # isort
+    "UP",            # pyupgrade
+    "B",             # bugbear
+    "S",             # bandit-style rules within ruff
+    "C4",            # comprehensions
+    "SIM",           # simplify
+]
+ignore = [
+    "S101",  # assert used (fine in tests)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106"]
+"lab/*" = ["S105", "S106", "S108"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+explicit_package_bases = true
+strict = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["lab.*", "tests.*"]
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: fast, isolated unit tests",
+    "integration: tests that exercise multiple components together",
+    "e2e: tests that spin up the lab app and run full campaigns",
+]
+
+[tool.coverage.run]
+source = ["src/llmsec"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
