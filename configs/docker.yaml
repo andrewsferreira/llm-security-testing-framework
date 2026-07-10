@@ -1,0 +1,31 @@
+# Used by docker-compose.yml: the scanner container reaches the lab container by its Compose
+# service name ("lab"), which is a DNS name, not a literal loopback/private IP or "localhost" —
+# so it fails llmsec's default local-only check even though it's actually just as contained as
+# localhost would be (both containers only exist inside this Compose network). This is the one
+# place allow_external_targets: true is safe by construction: it's still pointed at a sandboxed
+# container this project itself defines, not an arbitrary external host.
+target:
+  type: generic_http
+  base_url: http://lab:8000
+  chat_endpoint: /chat
+  agent_endpoint: /agent
+  rag_endpoint: /rag
+  timeout_seconds: 10
+
+campaign:
+  max_concurrency: 5
+  retry_count: 2
+  retry_backoff_seconds: 1
+  stop_on_critical: false
+
+reporting:
+  formats:
+    - json
+    - markdown
+    - html
+    - sarif
+  output_directory: reports
+
+security:
+  redact_sensitive_values: true
+  allow_external_targets: true

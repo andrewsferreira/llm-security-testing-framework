@@ -1,0 +1,5 @@
+ignored:
+  # Dependency versions are managed centrally in pyproject.toml (for the framework image,
+  # `pip install .` reads them from there directly). Duplicating exact pins in the Dockerfile
+  # too would just be a second place for them to drift out of sync.
+  - DL3013
