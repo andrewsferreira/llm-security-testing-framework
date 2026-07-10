@@ -52,7 +52,7 @@ def list_tests(
     ),
 ) -> None:
     """List the available test cases loaded from the payload registry."""
-    from llmsec.core.registry import load_all_test_cases  # deferred: Phase 5 module
+    from llmsec.core.registry import load_all_test_cases
 
     cases = load_all_test_cases()
     if category:
@@ -93,7 +93,7 @@ def scan(
     if output:
         cfg.reporting.output_directory = str(output)
 
-    from llmsec.core.engine import run_campaign  # deferred: Phase 4 module
+    from llmsec.core.engine import run_campaign
 
     try:
         exit_code = run_campaign(cfg, suite=suite)
@@ -117,9 +117,24 @@ def report(
     ),
 ) -> None:
     """Regenerate report(s) from a previously saved results.json file."""
-    from llmsec.core.engine import regenerate_reports  # deferred: Phase 6 module
+    from llmsec.constants import SUPPORTED_REPORT_FORMATS
+    from llmsec.core.engine import regenerate_reports
 
-    regenerate_reports(input_path, formats=formats, output_dir=output)
+    unknown = set(formats) - SUPPORTED_REPORT_FORMATS
+    if unknown:
+        typer.secho(
+            f"Unsupported report format(s): {sorted(unknown)}. "
+            f"Supported: {sorted(SUPPORTED_REPORT_FORMATS)}.",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=ExitCode.USAGE_ERROR)
+
+    try:
+        regenerate_reports(input_path, formats=formats, output_dir=output)
+    except LlmsecError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=ExitCode.USAGE_ERROR) from exc
 
 
 if __name__ == "__main__":

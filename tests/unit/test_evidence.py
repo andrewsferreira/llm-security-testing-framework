@@ -104,3 +104,31 @@ def test_build_result_populates_identity_fields() -> None:
     assert result.campaign_id == "c1"
     assert result.category == AttackCategory.DATA_EXFILTRATION
     assert result.severity == Severity.CRITICAL
+
+
+def test_build_result_sets_risk_score_only_when_failed() -> None:
+    response = TargetResponse(text="key=FAKE_API_KEY_12345", latency_ms=5.0, status_code=200)
+    failed_result = build_result(
+        campaign_id="c1",
+        test_case=_test_case(),
+        response=response,
+        outcome=_outcome(),
+        evaluator_name="keyword",
+        started_at=_NOW,
+        finished_at=_NOW,
+        redact=True,
+    )
+    assert failed_result.risk_score is not None
+    assert failed_result.risk_score > 0
+
+    passed_result = build_result(
+        campaign_id="c1",
+        test_case=_test_case(),
+        response=response,
+        outcome=EvaluationOutcome(status=ResultStatus.PASSED, confidence=0.9, explanation="ok"),
+        evaluator_name="keyword",
+        started_at=_NOW,
+        finished_at=_NOW,
+        redact=True,
+    )
+    assert passed_result.risk_score is None

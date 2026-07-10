@@ -1,6 +1,5 @@
-"""The campaign execution engine: loads test cases, runs them against a target, and writes a
-results.json report. Scoring and the polished json/markdown/html/sarif reporters are added in
-Phase 6, which read the same results.json this writes."""
+"""The campaign execution engine: loads test cases, runs them against a target, scores the
+results, and writes reports in every configured format."""
 
 from __future__ import annotations
 
@@ -13,13 +12,15 @@ from llmsec.config import Config
 from llmsec.constants import ExitCode
 from llmsec.core.registry import load_all_test_cases, select_suite
 from llmsec.core.runner import run_campaign_async
+from llmsec.exceptions import LlmsecError
 from llmsec.logging import get_logger
 from llmsec.models.campaign import Campaign, CampaignConfig
 from llmsec.models.result import TestResult
 from llmsec.models.test_case import TestCase
+from llmsec.reporters import write_reports
 from llmsec.targets import Target, build_target
 from llmsec.utils.identifiers import new_campaign_id
-from llmsec.utils.serialization import resolve_output_path, write_json
+from llmsec.utils.serialization import read_json
 
 logger = get_logger("engine")
 
@@ -76,23 +77,43 @@ def run_campaign(cfg: Config, *, suite: str) -> int:
     )
 
     output_dir = Path(cfg.reporting.output_directory) / campaign_id
-    results_path = resolve_output_path(output_dir, "results.json")
-    write_json(results_path, campaign)
-    logger.info(f"Wrote results to {results_path}")
+    written = write_reports(campaign, formats=cfg.reporting.formats, output_dir=output_dir)
+    logger.info(f"Wrote reports to {output_dir}", extra={"campaign_id": campaign_id})
 
-    _print_summary(campaign, results_path)
+    _print_summary(campaign, written)
 
     return int(ExitCode.FINDINGS) if campaign.failed_count > 0 else int(ExitCode.SUCCESS)
 
 
-def _print_summary(campaign: Campaign, results_path: Path) -> None:
+def _print_summary(campaign: Campaign, written: dict[str, Path]) -> None:
     print(f"\nCampaign {campaign.id} ({campaign.suite}): {campaign.total_tests} test(s)")
     print(f"  passed:       {campaign.passed_count}")
     print(f"  failed:       {campaign.failed_count}")
     print(f"  inconclusive: {campaign.inconclusive_count}")
     print(f"  errors:       {campaign.error_count}")
-    print(f"  results:      {results_path}")
+    for fmt, path in written.items():
+        print(f"  {fmt:<10}: {path}")
 
 
 def regenerate_reports(input_path: Path, *, formats: list[str], output_dir: Path | None) -> None:
-    raise NotImplementedError("Report regeneration is implemented in Phase 6.")
+    """Re-render report formats from a previously written JSON report."""
+    if not input_path.is_file():
+        raise LlmsecError(f"Input file not found: {input_path}")
+
+    try:
+        data = read_json(input_path)
+    except ValueError as exc:
+        raise LlmsecError(f"Could not parse JSON in {input_path}: {exc}") from exc
+
+    campaign_data = data.get("campaign", data) if isinstance(data, dict) else data
+    if not isinstance(campaign_data, dict):
+        raise LlmsecError(f"{input_path} does not contain a recognizable campaign report.")
+
+    try:
+        campaign = Campaign.model_validate(campaign_data)
+    except Exception as exc:  # pydantic ValidationError or similar
+        raise LlmsecError(f"{input_path} does not contain a valid campaign report: {exc}") from exc
+    target_dir = output_dir if output_dir is not None else input_path.parent
+    written = write_reports(campaign, formats=formats, output_dir=target_dir)
+    for fmt, path in written.items():
+        print(f"{fmt:<10}: {path}")

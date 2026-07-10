@@ -64,11 +64,13 @@ packages = ["src/llmsec"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "payloads" = "llmsec/payloads"
+"templates" = "llmsec/templates"
 
 [tool.hatch.build.targets.sdist]
 include = [
     "src",
     "payloads",
+    "templates",
     "README.md",
     "LICENSE",
 ]

@@ -9,8 +9,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from llmsec.core.scoring import compute_risk_score
 from llmsec.evaluators.base import EvaluationOutcome
-from llmsec.models.result import Evidence, TestResult
+from llmsec.models.result import Evidence, ResultStatus, TestResult
 from llmsec.models.test_case import TestCase
 from llmsec.targets.base import TargetResponse
 from llmsec.utils.identifiers import new_result_id
@@ -44,6 +45,14 @@ def build_result(
         request_payload = redact_value(request_payload, extra_markers=markers)
         response_value = redact_value(response_value, extra_markers=markers)
 
+    risk_score = None
+    if outcome.status == ResultStatus.FAILED:
+        risk_score = compute_risk_score(
+            severity=test_case.severity,
+            confidence=outcome.confidence,
+            requires_multi_turn=test_case.requires_multi_turn,
+        )
+
     return TestResult(
         id=new_result_id(),
         campaign_id=campaign_id,
@@ -63,6 +72,7 @@ def build_result(
         evaluator=evaluator_name,
         explanation=outcome.explanation,
         remediation=outcome.remediation,
+        risk_score=risk_score,
         error_type=error_type,
         error_message=error_message,
         started_at=started_at,

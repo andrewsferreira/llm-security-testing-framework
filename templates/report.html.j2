@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>llmsec report — {{ summary.campaign_id }}</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #161923; --border: #2a2f3d; --text: #e6e8ee; --muted: #9aa3b2;
+    --accent: #5b8cff; --critical: #e5484d; --high: #f2994a; --medium: #f2c94c; --low: #6fcf97;
+    --pass: #34d399; --fail: #e5484d; --inconclusive: #9aa3b2; --error: #f2994a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  h1, h2, h3 { font-weight: 600; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.15rem; margin-top: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+  a { color: var(--accent); }
+  .banner {
+    background: #2a1a1c; border: 1px solid var(--critical); color: #ffd7d7;
+    padding: .75rem 1rem; border-radius: 6px; margin-bottom: 1.5rem; font-size: .9rem;
+  }
+  .cards { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.25rem; min-width: 140px;
+  }
+  .card .value { font-size: 1.6rem; font-weight: 700; }
+  .card .label { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--border); font-size: .9rem; }
+  th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; }
+  .badge { display: inline-block; padding: .1rem .5rem; border-radius: 999px; font-size: .75rem; font-weight: 600; }
+  .sev-critical { background: rgba(229,72,77,.15); color: var(--critical); }
+  .sev-high { background: rgba(242,153,74,.15); color: var(--high); }
+  .sev-medium { background: rgba(242,201,76,.15); color: var(--medium); }
+  .sev-low { background: rgba(111,207,151,.15); color: var(--low); }
+  .status-passed { color: var(--pass); }
+  .status-failed { color: var(--fail); }
+  .status-inconclusive { color: var(--inconclusive); }
+  .status-error { color: var(--error); }
+  .filters { display: flex; gap: 1rem; margin: 1rem 0; align-items: center; }
+  .filters select {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: .4rem .6rem; font-size: .85rem;
+  }
+  .finding {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.25rem; margin: 1rem 0;
+  }
+  .finding h3 { margin: 0 0 .5rem 0; font-size: 1rem; }
+  .finding dl { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; margin: .5rem 0; }
+  .finding dt { color: var(--muted); font-size: .82rem; }
+  .finding dd { margin: 0; font-size: .88rem; }
+  .finding pre {
+    background: #0b0d12; border: 1px solid var(--border); border-radius: 6px;
+    padding: .6rem .8rem; overflow-x: auto; font-size: .8rem; white-space: pre-wrap; word-break: break-word;
+  }
+  .muted { color: var(--muted); }
+  footer { margin-top: 3rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+  <h1>llmsec security report</h1>
+  <div class="banner">
+    Use only against systems you own or are explicitly authorized to test. See docs/ethical-use.md.
+  </div>
+
+  <h2>Executive summary</h2>
+  <div class="cards">
+    <div class="card"><div class="value">{{ summary.total_tests }}</div><div class="label">Total tests</div></div>
+    <div class="card"><div class="value status-failed">{{ summary.failed }}</div><div class="label">Failed</div></div>
+    <div class="card"><div class="value status-passed">{{ summary.passed }}</div><div class="label">Passed</div></div>
+    <div class="card"><div class="value status-inconclusive">{{ summary.inconclusive }}</div><div class="label">Inconclusive</div></div>
+    <div class="card"><div class="value status-error">{{ summary.errors }}</div><div class="label">Errors</div></div>
+  </div>
+  <table>
+    <tr><th>Campaign</th><td>{{ summary.campaign_id }}</td></tr>
+    <tr><th>Target</th><td>{{ summary.target_base_url }}</td></tr>
+    <tr><th>Suite</th><td>{{ summary.suite }}</td></tr>
+    <tr><th>Framework version</th><td>{{ summary.framework_version }}</td></tr>
+    <tr><th>Started</th><td>{{ summary.started_at.isoformat() }}</td></tr>
+    <tr><th>Duration</th><td>{{ "%.2f"|format(summary.duration_seconds) }}s</td></tr>
+  </table>
+
+  <h2>Severity distribution (findings only)</h2>
+  <table>
+    <tr><th>Critical</th><th>High</th><th>Medium</th><th>Low</th></tr>
+    <tr>
+      <td><span class="badge sev-critical">{{ summary.severity_distribution_findings.critical }}</span></td>
+      <td><span class="badge sev-high">{{ summary.severity_distribution_findings.high }}</span></td>
+      <td><span class="badge sev-medium">{{ summary.severity_distribution_findings.medium }}</span></td>
+      <td><span class="badge sev-low">{{ summary.severity_distribution_findings.low }}</span></td>
+    </tr>
+  </table>
+
+  <h2>Category distribution (findings only)</h2>
+  <table>
+    <tr><th>Category</th><th>Findings</th></tr>
+    {% for category, count in summary.category_distribution_findings.items()|sort %}
+    <tr><td>{{ category }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>Findings</h2>
+  {% if not summary.findings %}
+  <p class="muted">No findings — every test case resisted its attack in this campaign.</p>
+  {% else %}
+  <div class="filters">
+    <label for="category-filter">Category</label>
+    <select id="category-filter" onchange="applyFilters()">
+      <option value="">All</option>
+      {% for category in categories %}
+      <option value="{{ category }}">{{ category }}</option>
+      {% endfor %}
+    </select>
+    <label for="severity-filter">Severity</label>
+    <select id="severity-filter" onchange="applyFilters()">
+      <option value="">All</option>
+      {% for severity in severities %}
+      <option value="{{ severity }}">{{ severity }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Risk</th><th>Severity</th><th>Category</th><th>Test</th><th>Name</th></tr>
+    </thead>
+    <tbody>
+      {% for finding in summary.findings %}
+      <tr class="finding-row" data-category="{{ finding.category.value }}" data-severity="{{ finding.severity.value }}">
+        <td>{{ "%.2f"|format(finding.risk_score or 0) }}</td>
+        <td><span class="badge sev-{{ finding.severity.value }}">{{ finding.severity.value }}</span></td>
+        <td>{{ finding.category.value }}</td>
+        <td>{{ finding.test_id }}</td>
+        <td><a href="#finding-{{ finding.test_id }}">{{ finding.test_name }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Evidence</h3>
+  {% for finding in summary.findings %}
+  <div class="finding finding-row" id="finding-{{ finding.test_id }}"
+       data-category="{{ finding.category.value }}" data-severity="{{ finding.severity.value }}">
+    <h3>{{ finding.test_id }} — {{ finding.test_name }}</h3>
+    <dl>
+      <dt>Status</dt><dd class="status-{{ finding.status.value }}">{{ finding.status.value }}</dd>
+      <dt>Risk score</dt><dd>{{ "%.2f"|format(finding.risk_score or 0) }} / 10</dd>
+      <dt>Evaluator</dt><dd>{{ finding.evaluator }}</dd>
+      {% if finding.evidence.matched_indicators %}
+      <dt>Matched indicators</dt><dd>{{ finding.evidence.matched_indicators|join(", ") }}</dd>
+      {% endif %}
+      <dt>Explanation</dt><dd>{{ finding.explanation }}</dd>
+      {% if finding.remediation %}
+      <dt>Remediation</dt><dd>{{ finding.remediation }}</dd>
+      {% endif %}
+    </dl>
+    {% if finding.response %}
+    <p class="muted">Response (redacted per security.redact_sensitive_values):</p>
+    <pre>{{ finding.response }}</pre>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <h2>Recommendations</h2>
+  {% if summary.recommendations %}
+  <ul>
+    {% for rec in summary.recommendations %}
+    <li>{{ rec }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No specific recommendations — no findings in this campaign.</p>
+  {% endif %}
+
+  <h2>Limitations</h2>
+  <ul>
+    <li>The lab target is a rule-based simulator, not a real LLM; results reflect the framework's mechanics, not any real model's behavior.</li>
+    <li>Evaluators are heuristic (keyword/regex/lexical-similarity/policy); INCONCLUSIVE results mean manual review is warranted, not that the target is safe.</li>
+    <li>Risk scores are a lab-specific heuristic (see docs/scoring-model.md), not an industry-standard metric.</li>
+    <li>SSRF/URL-safety guards are best-effort (see docs/threat-model.md), not a complete mitigation.</li>
+  </ul>
+
+  <footer>Generated by llmsec {{ summary.framework_version }}. No external stylesheets, fonts, or scripts are loaded by this page.</footer>
+
+  <script>
+    function applyFilters() {
+      var category = document.getElementById("category-filter").value;
+      var severity = document.getElementById("severity-filter").value;
+      var rows = document.querySelectorAll(".finding-row");
+      rows.forEach(function (row) {
+        var matchesCategory = !category || row.getAttribute("data-category") === category;
+        var matchesSeverity = !severity || row.getAttribute("data-severity") === severity;
+        row.classList.toggle("hidden", !(matchesCategory && matchesSeverity));
+      });
+    }
+  </script>
+</body>
+</html>
