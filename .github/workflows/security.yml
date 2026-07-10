@@ -58,10 +58,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Scans the whole repository history directly via the CLI rather than
+      # gitleaks/gitleaks-action, which computes a base..head commit range from the push
+      # event and fails on an initial/squashed push where that range isn't resolvable
+      # (no parent commit to diff against).
+      - name: Run Gitleaks (full history scan)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:latest \
+            detect --source /repo --no-banner --redact -v
 
   hadolint:
     name: Hadolint (Dockerfile lint)
