@@ -95,6 +95,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "S105", "S106"]
 "lab/*" = ["S105", "S106", "S108"]
+"src/llmsec/cli.py" = ["B008"]  # typer.Option(...) in defaults is the idiomatic Typer pattern
 
 [tool.mypy]
 python_version = "3.12"
@@ -118,6 +119,10 @@ markers = [
     "integration: tests that exercise multiple components together",
     "e2e: tests that spin up the lab app and run full campaigns",
 ]
+# TestCase/TestResult are domain model names (not pytest test classes); silence the
+# resulting PytestCollectionWarning rather than renaming well-established security-testing
+# terminology.
+filterwarnings = ["ignore::pytest.PytestCollectionWarning"]
 
 [tool.coverage.run]
 source = ["src/llmsec"]

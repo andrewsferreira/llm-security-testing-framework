@@ -1,0 +1,30 @@
+# Annotated starting template. Copy this file, rename it, and adjust `target.base_url` to
+# point at a system you own or are explicitly authorized to test.
+#
+# IMPORTANT: leave security.allow_external_targets set to false unless the target you are
+# pointing at is one you are authorized to test. See docs/ethical-use.md.
+
+target:
+  type: generic_http          # generic_http | mock | provider
+  base_url: http://localhost:8000
+  chat_endpoint: /chat         # POST endpoint used by the "direct" conversational suites
+  agent_endpoint: /agent       # POST endpoint used by tool-abuse / excessive-agency suites
+  rag_endpoint: /rag           # POST endpoint used by indirect-prompt-injection suites
+  timeout_seconds: 10
+  request_field: message       # JSON field the framework puts the prompt/turn under
+  response_field: reply        # JSON field (dot path) read out of the target's response
+  history_field: history       # JSON field used to send prior conversation turns
+
+campaign:
+  max_concurrency: 5           # bounded concurrency — keep this modest against real systems
+  retry_count: 2
+  retry_backoff_seconds: 1
+  stop_on_critical: false      # set true to abort the campaign as soon as a CRITICAL is found
+
+reporting:
+  formats: [json, markdown, html, sarif]
+  output_directory: reports
+
+security:
+  redact_sensitive_values: true
+  allow_external_targets: false  # do not flip to true without explicit authorization

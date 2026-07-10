@@ -1,0 +1,25 @@
+# Used by .github/workflows/ci.yml and the e2e test suite: scans the lab app started
+# alongside the test run. Lower concurrency and fewer report formats to keep CI fast.
+target:
+  type: generic_http
+  base_url: http://localhost:8000
+  chat_endpoint: /chat
+  agent_endpoint: /agent
+  rag_endpoint: /rag
+  timeout_seconds: 5
+
+campaign:
+  max_concurrency: 3
+  retry_count: 1
+  retry_backoff_seconds: 0.5
+  stop_on_critical: false
+
+reporting:
+  formats:
+    - json
+    - sarif
+  output_directory: reports
+
+security:
+  redact_sensitive_values: true
+  allow_external_targets: false

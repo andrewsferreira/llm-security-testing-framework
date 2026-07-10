@@ -1,0 +1,26 @@
+# Default local configuration: scans the bundled lab app running on localhost.
+target:
+  type: generic_http
+  base_url: http://localhost:8000
+  chat_endpoint: /chat
+  agent_endpoint: /agent
+  rag_endpoint: /rag
+  timeout_seconds: 10
+
+campaign:
+  max_concurrency: 5
+  retry_count: 2
+  retry_backoff_seconds: 1
+  stop_on_critical: false
+
+reporting:
+  formats:
+    - json
+    - markdown
+    - html
+    - sarif
+  output_directory: reports
+
+security:
+  redact_sensitive_values: true
+  allow_external_targets: false
