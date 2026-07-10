@@ -1,0 +1,9 @@
+- id: DUP-001
+  name: Second definition
+  category: jailbreak
+  description: Second, duplicate id.
+  severity: low
+  prompt: hello again
+  expected_behavior: n/a
+  evaluator_config:
+    type: keyword

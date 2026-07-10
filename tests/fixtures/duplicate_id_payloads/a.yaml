@@ -1,0 +1,9 @@
+- id: DUP-001
+  name: First definition
+  category: jailbreak
+  description: First.
+  severity: low
+  prompt: hello
+  expected_behavior: n/a
+  evaluator_config:
+    type: keyword

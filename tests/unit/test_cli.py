@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from llmsec import __version__
@@ -33,6 +34,33 @@ def test_validate_config_rejects_external_target(tmp_path: Path) -> None:
     assert "allow_external_targets" in result.output
 
 
-def test_list_tests_not_yet_implemented() -> None:
+def test_list_tests_lists_fixture_cases(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LLMSEC_PAYLOADS_DIR", "tests/fixtures/sample_payloads")
     result = runner.invoke(app, ["list-tests"])
+    assert result.exit_code == 0
+    assert "FIX-SPI-001" in result.output
+    assert "test case(s)" in result.output
+
+
+def test_list_tests_filters_by_category(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LLMSEC_PAYLOADS_DIR", "tests/fixtures/sample_payloads")
+    result = runner.invoke(app, ["list-tests", "--category", "data_exfiltration"])
+    assert result.exit_code == 0
+    assert "FIX-DEX-001" in result.output
+    assert "FIX-SPI-001" not in result.output
+
+
+def test_list_tests_reports_none_found_for_empty_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("LLMSEC_PAYLOADS_DIR", str(tmp_path))
+    result = runner.invoke(app, ["list-tests"])
+    assert result.exit_code == 0
+    assert "No test cases found" in result.output
+
+
+def test_report_command_is_not_yet_implemented(tmp_path: Path) -> None:
+    input_path = tmp_path / "results.json"
+    input_path.write_text("{}")
+    result = runner.invoke(app, ["report", "--input", str(input_path)])
     assert result.exit_code != 0

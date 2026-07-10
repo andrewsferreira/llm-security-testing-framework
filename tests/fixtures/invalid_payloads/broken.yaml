@@ -1,0 +1,4 @@
+- id: BROKEN-001
+  name: Missing required fields
+  category: jailbreak
+  # missing description, severity, expected_behavior, evaluator_config
