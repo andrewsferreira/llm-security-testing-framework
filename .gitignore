@@ -31,5 +31,5 @@ reports/*
 .vscode/
 .idea/
 
-# Claude Code local settings
-.claude/settings.local.json
+# Claude Code local state (session-local, not project code)
+.claude/

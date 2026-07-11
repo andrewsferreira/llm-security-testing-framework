@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import BaseTargetConfig
 
 Endpoint = Literal["chat", "agent", "rag"]
 
@@ -28,11 +28,17 @@ class TargetResponse(BaseModel):
     status_code: int | None = None
 
 
-class Target(ABC):
-    """Sends a prompt (optionally with prior turns) to a target and returns its reply."""
+class Target[TConfig: BaseTargetConfig](ABC):
+    """Sends a prompt (optionally with prior turns) to a target and returns its reply.
 
-    def __init__(self, config: TargetConfig) -> None:
-        self.config = config
+    Generic over its config type (`TConfig`, bound to `BaseTargetConfig`) so each concrete
+    target — `GenericHttpTarget`, `MockTarget`, `ProviderAdapterTarget` — gets its own config
+    subtype narrowed on `self.config`, rather than every target seeing the full discriminated
+    union and needing runtime `isinstance`/`match` checks to use its own fields.
+    """
+
+    def __init__(self, config: TConfig) -> None:
+        self.config: TConfig = config
 
     @abstractmethod
     async def send(
@@ -43,7 +49,7 @@ class Target(ABC):
         """Release any held resources (connections, etc.). Default: no-op."""
         return None
 
-    async def __aenter__(self) -> Target:
+    async def __aenter__(self) -> Target[TConfig]:
         return self
 
     async def __aexit__(self, *exc_info: object) -> None:

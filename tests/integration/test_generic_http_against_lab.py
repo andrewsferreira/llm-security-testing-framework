@@ -8,13 +8,13 @@ import pytest
 from lab.app.fake_data import SYSTEM_SECRET_MARKER
 from lab.app.main import app as lab_app
 
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import GenericHttpTargetConfig
 from llmsec.targets.generic_http import GenericHttpTarget
 
 
 def _target() -> GenericHttpTarget:
     transport = httpx.ASGITransport(app=lab_app)
-    config = TargetConfig(base_url="http://localhost")
+    config = GenericHttpTargetConfig(base_url="http://localhost")
     return GenericHttpTarget(config, allow_external=False, transport=transport)
 
 

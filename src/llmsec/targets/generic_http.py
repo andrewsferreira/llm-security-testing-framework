@@ -16,7 +16,7 @@ import httpx
 
 from llmsec.constants import MAX_HTTP_REDIRECTS, MAX_RESPONSE_BYTES
 from llmsec.exceptions import TargetError
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import GenericHttpTargetConfig
 from llmsec.targets.base import Endpoint, HistoryTurn, Target, TargetResponse
 from llmsec.utils.url_safety import validate_target_url
 
@@ -48,10 +48,10 @@ def _extract_field(data: Any, dotted_path: str) -> str:
     return current
 
 
-class GenericHttpTarget(Target):
+class GenericHttpTarget(Target[GenericHttpTargetConfig]):
     def __init__(
         self,
-        config: TargetConfig,
+        config: GenericHttpTargetConfig,
         *,
         allow_external: bool,
         transport: httpx.AsyncBaseTransport | None = None,

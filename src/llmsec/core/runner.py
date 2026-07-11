@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import UTC, datetime
+from typing import Any
 
 from llmsec.core.evidence import build_result
 from llmsec.evaluators import EvaluationOutcome, get_evaluator
@@ -53,7 +54,7 @@ class _RateLimiter:
             self._last_call = time.monotonic()
 
 
-async def _execute_test_case(target: Target, test_case: TestCase) -> TargetResponse:
+async def _execute_test_case(target: Target[Any], test_case: TestCase) -> TargetResponse:
     endpoint = endpoint_for_category(test_case.category)
 
     if test_case.conversation and test_case.requires_multi_turn:
@@ -79,7 +80,7 @@ async def _execute_test_case(target: Target, test_case: TestCase) -> TargetRespo
 
 
 async def _run_one(
-    target: Target,
+    target: Target[Any],
     test_case: TestCase,
     campaign_id: str,
     campaign_config: CampaignConfig,
@@ -133,7 +134,7 @@ async def _run_one(
 
 
 async def run_campaign_async(
-    target: Target,
+    target: Target[Any],
     test_cases: list[TestCase],
     campaign_config: CampaignConfig,
     campaign_id: str,

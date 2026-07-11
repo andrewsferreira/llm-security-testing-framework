@@ -52,6 +52,20 @@ class Config(BaseModel):
     reporting: ReportingConfig = Field(default_factory=ReportingConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _default_target_type_to_generic_http(cls, data: Any) -> Any:
+        """`target` is a discriminated union on `type` (see models/target.py) — Pydantic
+        requires that discriminator to be present in the input to know which union member to
+        validate against, it can't fall back to a "default variant" the way a flat model could.
+        `generic_http` is the documented default target type, so a config that omits `type`
+        entirely should still mean that, not a validation error."""
+        if isinstance(data, dict):
+            target = data.get("target")
+            if isinstance(target, dict) and "type" not in target:
+                data = {**data, "target": {**target, "type": "generic_http"}}
+        return data
+
     @model_validator(mode="after")
     def _check_target_is_safe(self) -> Config:
         validate_target_url(

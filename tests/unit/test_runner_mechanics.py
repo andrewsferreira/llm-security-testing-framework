@@ -12,11 +12,11 @@ from llmsec.core.runner import run_campaign_async
 from llmsec.exceptions import TargetError
 from llmsec.models.campaign import CampaignConfig
 from llmsec.models.result import ResultStatus
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import GenericHttpTargetConfig
 from llmsec.models.test_case import AttackCategory, Severity, TestCase
 from llmsec.targets.base import Endpoint, HistoryTurn, Target, TargetResponse
 
-_DUMMY_TARGET_CONFIG = TargetConfig(base_url="http://localhost:8000")
+_DUMMY_TARGET_CONFIG = GenericHttpTargetConfig(base_url="http://localhost:8000")
 
 
 def _test_case(id_: str, **overrides: object) -> TestCase:
@@ -35,7 +35,7 @@ def _test_case(id_: str, **overrides: object) -> TestCase:
     return TestCase.model_validate(defaults)
 
 
-class _ConcurrencyTrackingTarget(Target):
+class _ConcurrencyTrackingTarget(Target[GenericHttpTargetConfig]):
     def __init__(self) -> None:
         self.in_flight = 0
         self.max_in_flight = 0
@@ -69,7 +69,7 @@ async def test_results_are_returned_in_original_order() -> None:
     assert [r.test_id for r in results] == [tc.id for tc in test_cases]
 
 
-class _FlakyTarget(Target):
+class _FlakyTarget(Target[GenericHttpTargetConfig]):
     def __init__(self, fail_times: int) -> None:
         self.fail_times = fail_times
         self.calls = 0
@@ -100,7 +100,7 @@ async def test_error_result_after_exhausting_retries() -> None:
     assert target.calls == 2  # 1 initial attempt + 1 retry
 
 
-class _SlowTarget(Target):
+class _SlowTarget(Target[GenericHttpTargetConfig]):
     async def send(
         self, *, endpoint: Endpoint, prompt: str, history: list[HistoryTurn] | None = None
     ) -> TargetResponse:
@@ -118,7 +118,7 @@ async def test_per_test_timeout_produces_error_result() -> None:
     assert results[0].error_type == "TimeoutError"
 
 
-class _AlwaysCriticalFailTarget(Target):
+class _AlwaysCriticalFailTarget(Target[GenericHttpTargetConfig]):
     async def send(
         self, *, endpoint: Endpoint, prompt: str, history: list[HistoryTurn] | None = None
     ) -> TargetResponse:

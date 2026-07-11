@@ -7,7 +7,7 @@ from typer.testing import CliRunner
 from llmsec import __version__
 from llmsec.cli import app
 from llmsec.models.campaign import Campaign, CampaignConfig
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import GenericHttpTargetConfig
 from llmsec.reporters import write_reports
 
 runner = CliRunner()
@@ -89,7 +89,7 @@ def test_report_command_regenerates_from_a_real_campaign_json(tmp_path: Path) ->
     campaign = Campaign(
         id="campaign-test",
         suite="all",
-        target=TargetConfig(base_url="http://localhost:8000"),
+        target=GenericHttpTargetConfig(base_url="http://localhost:8000"),
         config=CampaignConfig(),
         framework_version="0.1.0",
         started_at=now,

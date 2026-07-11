@@ -23,7 +23,7 @@ import httpx
 
 from llmsec.constants import MAX_HTTP_REDIRECTS, MAX_RESPONSE_BYTES
 from llmsec.exceptions import TargetError
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import ProviderTargetConfig
 from llmsec.targets.base import Endpoint, HistoryTurn, Target, TargetResponse
 from llmsec.utils.url_safety import validate_target_url
 
@@ -37,24 +37,23 @@ def _label_turn(turn: HistoryTurn) -> dict[str, str]:
     return {"role": "user", "content": f"[{turn.role.upper()} CONTENT]\n{turn.content}"}
 
 
-class ProviderAdapterTarget(Target):
+class ProviderAdapterTarget(Target[ProviderTargetConfig]):
     def __init__(
         self,
-        config: TargetConfig,
+        config: ProviderTargetConfig,
         *,
         allow_external: bool,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         """`transport` is a testing hook (e.g. httpx.MockTransport); production callers
-        should leave it unset so httpx uses a real network transport."""
-        super().__init__(config)
-        if config.provider is None:
-            raise TargetError("target.provider must be set when target.type is 'provider'.")
-        if config.model is None:
-            raise TargetError("target.model must be set when target.type is 'provider'.")
-        if not config.auth_token_env:
-            raise TargetError("target.auth_token_env must name the env var holding the API key.")
+        should leave it unset so httpx uses a real network transport.
 
+        `provider`/`model`/`auth_token_env` being set is guaranteed by
+        `ProviderTargetConfig`'s schema (see models/target.py) — nothing to re-check here.
+        The one thing the schema can't guarantee is that the *environment variable itself* is
+        actually set at runtime, which is checked below.
+        """
+        super().__init__(config)
         self._api_key = os.environ.get(config.auth_token_env)
         if not self._api_key:
             raise TargetError(

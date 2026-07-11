@@ -98,16 +98,21 @@ lossy approximation, called out here rather than left implicit.
 
 ## Writing a new `Target` from scratch
 
-Implement `targets/base.py`'s `Target` class (one abstract method):
+Implement `targets/base.py`'s `Target` class (one abstract method). `Target` is generic over
+its config type — parameterize it with `BaseTargetConfig` if your target doesn't need any
+type-specific fields, or define your own `BaseTargetConfig` subclass if it does (see
+`models/target.py` for how `GenericHttpTargetConfig`/`MockTargetConfig`/`ProviderTargetConfig`
+each do this):
 
 ```python
+from llmsec.models.target import BaseTargetConfig
 from llmsec.targets.base import Endpoint, HistoryTurn, Target, TargetResponse
 
-class MyTarget(Target):
+class MyTarget(Target[BaseTargetConfig]):
     async def send(
         self, *, endpoint: Endpoint, prompt: str, history: list[HistoryTurn] | None = None
     ) -> TargetResponse:
-        ...  # your integration logic
+        ...  # your integration logic — self.config is typed as BaseTargetConfig here
         return TargetResponse(text=..., raw=..., latency_ms=..., status_code=...)
 ```
 

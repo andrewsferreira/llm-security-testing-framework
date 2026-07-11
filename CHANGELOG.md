@@ -3,6 +3,23 @@
 All notable changes to this project are documented here. Format loosely follows [Keep a
 Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+Enterprise-hardening pass on top of the 0.1.0 build — see `docs/architecture-review.md` and
+`TASKS.md` for the full assessment and tracked backlog this is drawn from.
+
+### Changed
+- **`TargetConfig` is now a discriminated union** (`GenericHttpTargetConfig` /
+  `MockTargetConfig` / `ProviderTargetConfig`) instead of one flat model with every target
+  type's fields bolted on. `Target` is generic over its config type, so each concrete target's
+  `self.config` is narrowed to its own subtype. `ProviderTargetConfig.provider`/`.model`/
+  `.auth_token_env` are now required fields, validated at config-load time instead of at
+  target-construction time.
+- Fixed a real bug this refactor surfaced: a config's `target:` section that omits `type:`
+  now still defaults to `generic_http` (documented behavior) via an explicit
+  `model_validator(mode="before")` on `Config` — Pydantic discriminated unions require the
+  discriminator field present in the input and don't support an implicit default variant.
+
 ## [0.1.0] — Unreleased
 
 Initial portfolio release.

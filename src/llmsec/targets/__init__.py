@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from llmsec.exceptions import TargetError
-from llmsec.models.target import TargetConfig, TargetType
+from llmsec.models.target import (
+    GenericHttpTargetConfig,
+    MockTargetConfig,
+    ProviderTargetConfig,
+    TargetConfig,
+)
 from llmsec.targets.base import Endpoint, HistoryTurn, Target, TargetResponse
 from llmsec.targets.generic_http import GenericHttpTarget
 from llmsec.targets.mock_target import MockTarget
@@ -21,12 +28,17 @@ __all__ = [
 ]
 
 
-def build_target(config: TargetConfig, *, allow_external: bool) -> Target:
-    """Construct the right Target implementation for `config.type`."""
-    if config.type == TargetType.GENERIC_HTTP:
+def build_target(config: TargetConfig, *, allow_external: bool) -> Target[Any]:
+    """Construct the right Target implementation for `config`'s concrete type.
+
+    Dispatches on `isinstance` against the discriminated union's member types, rather than
+    comparing `config.type` against `TargetType` — this way mypy narrows `config` to the
+    concrete subtype in each branch, which the constructor call itself then relies on.
+    """
+    if isinstance(config, GenericHttpTargetConfig):
         return GenericHttpTarget(config, allow_external=allow_external)
-    if config.type == TargetType.MOCK:
+    if isinstance(config, MockTargetConfig):
         return MockTarget(config)
-    if config.type == TargetType.PROVIDER:
+    if isinstance(config, ProviderTargetConfig):
         return ProviderAdapterTarget(config, allow_external=allow_external)
-    raise TargetError(f"Unknown target type: {config.type!r}")
+    raise TargetError(f"Unknown target config type: {type(config).__name__!r}")

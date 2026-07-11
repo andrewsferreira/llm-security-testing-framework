@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from llmsec import __version__
 from llmsec.config import Config
@@ -26,7 +27,7 @@ logger = get_logger("engine")
 
 
 async def _run_and_cleanup(
-    target: Target,
+    target: Target[Any],
     test_cases: list[TestCase],
     campaign_config: CampaignConfig,
     campaign_id: str,

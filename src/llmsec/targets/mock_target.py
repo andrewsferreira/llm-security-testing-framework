@@ -12,12 +12,12 @@ import time
 from typing import Any
 
 from llmsec.exceptions import TargetError
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import MockTargetConfig
 from llmsec.targets.base import Endpoint, HistoryTurn, Target, TargetResponse
 
 
-class MockTarget(Target):
-    def __init__(self, config: TargetConfig, *, mode: str = "vulnerable") -> None:
+class MockTarget(Target[MockTargetConfig]):
+    def __init__(self, config: MockTargetConfig, *, mode: str = "vulnerable") -> None:
         super().__init__(config)
         self.mode = mode
 

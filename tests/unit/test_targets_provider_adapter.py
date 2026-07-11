@@ -2,16 +2,16 @@ import json
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from llmsec.exceptions import TargetError
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import ProviderTargetConfig
 from llmsec.targets.base import HistoryTurn
 from llmsec.targets.provider_adapter import ProviderAdapterTarget
 
 
-def _openai_config() -> TargetConfig:
-    return TargetConfig(
-        type="provider",
+def _openai_config() -> ProviderTargetConfig:
+    return ProviderTargetConfig(
         base_url="https://api.openai.com",
         provider="openai",
         model="gpt-test",
@@ -19,17 +19,26 @@ def _openai_config() -> TargetConfig:
     )
 
 
-def test_requires_provider_field() -> None:
-    config = TargetConfig(base_url="https://api.openai.com", model="x", auth_token_env="K")
-    with pytest.raises(TargetError, match="provider"):
-        ProviderAdapterTarget(config, allow_external=True)
+def test_schema_requires_provider_field() -> None:
+    # provider/model/auth_token_env are required on ProviderTargetConfig (not optional, as they
+    # would be on a flat config shared with other target types) — this fails at config
+    # construction/validation time, before a ProviderAdapterTarget is ever built.
+    with pytest.raises(ValidationError, match="provider"):
+        ProviderTargetConfig(base_url="https://api.openai.com", model="x", auth_token_env="K")  # type: ignore[call-arg]
 
 
-def test_requires_model_field(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("K", "secret")
-    config = TargetConfig(base_url="https://api.openai.com", provider="openai", auth_token_env="K")
-    with pytest.raises(TargetError, match="model"):
-        ProviderAdapterTarget(config, allow_external=True)
+def test_schema_requires_model_field() -> None:
+    with pytest.raises(ValidationError, match="model"):
+        ProviderTargetConfig(
+            base_url="https://api.openai.com", provider="openai", auth_token_env="K"
+        )  # type: ignore[call-arg]
+
+
+def test_schema_requires_non_empty_auth_token_env() -> None:
+    with pytest.raises(ValidationError):
+        ProviderTargetConfig(
+            base_url="https://api.openai.com", provider="openai", model="x", auth_token_env=""
+        )
 
 
 def test_requires_api_key_env_var_to_be_set(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -80,7 +89,7 @@ async def test_anthropic_request_shape_and_response_parsing(
         assert str(request.url).endswith("/v1/messages")
         return httpx.Response(200, json={"content": [{"text": "hi from claude"}]})
 
-    config = TargetConfig(
+    config = ProviderTargetConfig(
         base_url="https://api.anthropic.com",
         provider="anthropic",
         model="claude-test",

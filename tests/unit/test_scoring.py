@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from llmsec.core.scoring import compute_risk_score, summarize
 from llmsec.models.campaign import Campaign, CampaignConfig
 from llmsec.models.result import Evidence, ResultStatus, TestResult
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import GenericHttpTargetConfig
 from llmsec.models.test_case import AttackCategory, Severity
 
 _NOW = datetime.now(UTC)
@@ -75,7 +75,7 @@ def _campaign(results: list[TestResult]) -> Campaign:
     return Campaign(
         id="camp-1",
         suite="all",
-        target=TargetConfig(base_url="http://localhost:8000"),
+        target=GenericHttpTargetConfig(base_url="http://localhost:8000"),
         config=CampaignConfig(),
         framework_version="0.1.0",
         started_at=_NOW,

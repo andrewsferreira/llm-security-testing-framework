@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from llmsec.evaluators import get_evaluator  # noqa: E402
-from llmsec.models.target import TargetConfig  # noqa: E402
+from llmsec.models.target import MockTargetConfig  # noqa: E402
 from llmsec.models.test_case import AttackCategory, Severity, TestCase  # noqa: E402
 from llmsec.targets.mock_target import MockTarget  # noqa: E402
 
@@ -37,7 +37,7 @@ async def main() -> None:
     )
 
     for mode in ("vulnerable", "hardened"):
-        target = MockTarget(TargetConfig(base_url="http://localhost:8000"), mode=mode)
+        target = MockTarget(MockTargetConfig(base_url="http://localhost:8000"), mode=mode)
         response = await target.send(endpoint="chat", prompt=test_case.prompt or "")
         evaluator = get_evaluator(test_case.evaluator_config["type"])
         outcome = evaluator.evaluate(test_case=test_case, response=response)

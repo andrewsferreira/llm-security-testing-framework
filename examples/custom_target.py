@@ -13,12 +13,16 @@ from __future__ import annotations
 import asyncio
 import time
 
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import BaseTargetConfig
 from llmsec.targets.base import Endpoint, HistoryTurn, Target, TargetResponse
 
 
-class EchoTarget(Target):
-    """Toy target that just echoes the prompt back, prefixed by the endpoint name."""
+class EchoTarget(Target[BaseTargetConfig]):
+    """Toy target that just echoes the prompt back, prefixed by the endpoint name.
+
+    Uses `BaseTargetConfig` directly (not one of the `generic_http`/`mock`/`provider`
+    subtypes) since it doesn't need any type-specific fields — just `base_url`.
+    """
 
     async def send(
         self, *, endpoint: Endpoint, prompt: str, history: list[HistoryTurn] | None = None
@@ -33,7 +37,7 @@ class EchoTarget(Target):
 
 
 async def main() -> None:
-    target = EchoTarget(TargetConfig(base_url="http://localhost:8000"))
+    target = EchoTarget(BaseTargetConfig(base_url="http://localhost:8000"))
     response = await target.send(endpoint="chat", prompt="hello there")
     print(f"text: {response.text}")
     print(f"raw:  {response.raw}")

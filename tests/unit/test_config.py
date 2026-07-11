@@ -4,6 +4,19 @@ import pytest
 
 from llmsec.config import load_config
 from llmsec.exceptions import ConfigError
+from llmsec.models.target import GenericHttpTargetConfig, TargetType
+
+
+def test_target_type_defaults_to_generic_http_when_omitted(tmp_path: Path) -> None:
+    # target is a discriminated union on `type` (see models/target.py) — Pydantic requires the
+    # discriminator to be present to resolve which union member to validate against, so this
+    # verifies Config's before-validator actually injects the documented default rather than
+    # raising "Unable to extract tag using discriminator 'type'".
+    path = tmp_path / "no-type.yaml"
+    path.write_text("target:\n  base_url: http://localhost:8000\n")
+    cfg = load_config(path)
+    assert isinstance(cfg.target, GenericHttpTargetConfig)
+    assert cfg.target.type == TargetType.GENERIC_HTTP
 
 
 def test_loads_bundled_local_config() -> None:

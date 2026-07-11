@@ -22,7 +22,7 @@ from llmsec import __version__  # noqa: E402
 from llmsec.core.registry import load_all_test_cases, select_suite  # noqa: E402
 from llmsec.core.runner import run_campaign_async  # noqa: E402
 from llmsec.models.campaign import Campaign, CampaignConfig  # noqa: E402
-from llmsec.models.target import TargetConfig  # noqa: E402
+from llmsec.models.target import MockTargetConfig  # noqa: E402
 from llmsec.reporters import write_reports  # noqa: E402
 from llmsec.targets.mock_target import MockTarget  # noqa: E402
 from llmsec.utils.identifiers import new_campaign_id  # noqa: E402
@@ -31,7 +31,7 @@ from llmsec.utils.identifiers import new_campaign_id  # noqa: E402
 async def main() -> None:
     test_cases = select_suite(load_all_test_cases(REPO_ROOT / "payloads"), "jailbreak")
 
-    target = MockTarget(TargetConfig(base_url="http://localhost:8000"), mode="vulnerable")
+    target = MockTarget(MockTargetConfig(base_url="http://localhost:8000"), mode="vulnerable")
     campaign_config = CampaignConfig(max_concurrency=4, retry_count=1)
     campaign_id = new_campaign_id()
     started_at = datetime.now(UTC)

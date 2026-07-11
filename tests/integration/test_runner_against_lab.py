@@ -10,7 +10,7 @@ from llmsec.core.registry import load_all_test_cases
 from llmsec.core.runner import run_campaign_async
 from llmsec.models.campaign import CampaignConfig
 from llmsec.models.result import ResultStatus
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import MockTargetConfig
 from llmsec.targets.mock_target import MockTarget
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "sample_payloads"
@@ -18,7 +18,7 @@ FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "sample_payload
 
 async def _run(mode: str) -> dict[str, ResultStatus]:
     test_cases = load_all_test_cases(FIXTURES)
-    target = MockTarget(TargetConfig(base_url="http://localhost:8000"), mode=mode)
+    target = MockTarget(MockTargetConfig(base_url="http://localhost:8000"), mode=mode)
     config = CampaignConfig(max_concurrency=4, retry_count=0)
     results = await run_campaign_async(target, test_cases, config, "camp-lab", redact=True)
     return {r.test_id: r.status for r in results}

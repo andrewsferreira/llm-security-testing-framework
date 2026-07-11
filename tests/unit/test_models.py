@@ -9,9 +9,9 @@ from llmsec.models import (
     CampaignConfig,
     ConversationTurn,
     Evidence,
+    GenericHttpTargetConfig,
     ResultStatus,
     Severity,
-    TargetConfig,
     TestCase,
     TestResult,
 )
@@ -71,7 +71,7 @@ def test_test_case_rejects_unknown_fields() -> None:
 
 
 def test_target_config_endpoint_url_joins_cleanly() -> None:
-    target = TargetConfig(base_url="http://localhost:8000/")
+    target = GenericHttpTargetConfig(base_url="http://localhost:8000/")
     assert target.endpoint_url("/chat") == "http://localhost:8000/chat"
     assert target.endpoint_url("chat") == "http://localhost:8000/chat"
 
@@ -100,7 +100,7 @@ def test_campaign_status_counts() -> None:
     campaign = Campaign(
         id="campaign-1",
         suite="all",
-        target=TargetConfig(base_url="http://localhost:8000"),
+        target=GenericHttpTargetConfig(base_url="http://localhost:8000"),
         config=CampaignConfig(),
         framework_version="0.1.0",
         started_at=datetime.now(UTC),

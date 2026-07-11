@@ -16,7 +16,7 @@ from llmsec.core.registry import load_all_test_cases
 from llmsec.core.runner import run_campaign_async
 from llmsec.models.campaign import CampaignConfig
 from llmsec.models.result import ResultStatus
-from llmsec.models.target import TargetConfig
+from llmsec.models.target import MockTargetConfig
 from llmsec.models.test_case import AttackCategory, TestCase
 from llmsec.targets.mock_target import MockTarget
 
@@ -29,7 +29,7 @@ def _load_cases() -> list[TestCase]:
 
 async def _run(mode: str) -> dict[str, ResultStatus]:
     test_cases = _load_cases()
-    target = MockTarget(TargetConfig(base_url="http://localhost:8000"), mode=mode)
+    target = MockTarget(MockTargetConfig(base_url="http://localhost:8000"), mode=mode)
     config = CampaignConfig(max_concurrency=8, retry_count=0)
     results = await run_campaign_async(target, test_cases, config, "camp-payloads", redact=True)
     return {r.test_id: r.status for r in results}
@@ -58,8 +58,8 @@ async def test_each_category_is_fully_covered_in_both_modes(category: AttackCate
     cases = [c for c in _load_cases() if c.category == category]
     assert cases, f"No test cases found for category {category.value}"
 
-    target_vuln = MockTarget(TargetConfig(base_url="http://localhost:8000"), mode="vulnerable")
-    target_hard = MockTarget(TargetConfig(base_url="http://localhost:8000"), mode="hardened")
+    target_vuln = MockTarget(MockTargetConfig(base_url="http://localhost:8000"), mode="vulnerable")
+    target_hard = MockTarget(MockTargetConfig(base_url="http://localhost:8000"), mode="hardened")
     config = CampaignConfig(max_concurrency=4, retry_count=0)
 
     vuln_results = await run_campaign_async(target_vuln, cases, config, "camp-cat", redact=True)

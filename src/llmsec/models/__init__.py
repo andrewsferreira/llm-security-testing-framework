@@ -2,7 +2,13 @@
 
 from llmsec.models.campaign import Campaign, CampaignConfig
 from llmsec.models.result import Evidence, ResultStatus, TestResult
-from llmsec.models.target import TargetConfig, TargetType
+from llmsec.models.target import (
+    GenericHttpTargetConfig,
+    MockTargetConfig,
+    ProviderTargetConfig,
+    TargetConfig,
+    TargetType,
+)
 from llmsec.models.test_case import AttackCategory, ConversationTurn, Severity, TestCase
 
 __all__ = [
@@ -11,6 +17,9 @@ __all__ = [
     "CampaignConfig",
     "ConversationTurn",
     "Evidence",
+    "GenericHttpTargetConfig",
+    "MockTargetConfig",
+    "ProviderTargetConfig",
     "ResultStatus",
     "Severity",
     "TargetConfig",
