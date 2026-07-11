@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import typer
@@ -11,6 +12,7 @@ from llmsec.config import load_config
 from llmsec.constants import DEFAULT_CONFIG_PATH, ExitCode
 from llmsec.exceptions import ConfigError, LlmsecError
 from llmsec.logging import configure_logging
+from llmsec.rendering import get_renderer
 
 app = typer.Typer(
     name="llmsec",
@@ -19,11 +21,27 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
+_JSON_OPTION = typer.Option(
+    False, "--json", help="Emit machine-readable JSON instead of human-readable output."
+)
+_VERBOSE_OPTION = typer.Option(False, "--verbose", help="Show INFO-level logs on stderr.")
+_DEBUG_OPTION = typer.Option(
+    False, "--debug", help="Show DEBUG-level logs on stderr (implies --verbose)."
+)
+
+
+def _log_level(*, verbose: bool, debug: bool) -> int:
+    if debug:
+        return logging.DEBUG
+    if verbose:
+        return logging.INFO
+    return logging.WARNING
+
 
 @app.command()
-def version() -> None:
+def version(json_output: bool = _JSON_OPTION) -> None:
     """Print the installed llmsec version."""
-    typer.echo(f"llmsec {__version__}")
+    get_renderer(json_output=json_output).version(__version__)
 
 
 @app.command("validate-config")
@@ -31,18 +49,17 @@ def validate_config(
     config: Path = typer.Option(
         Path(DEFAULT_CONFIG_PATH), "--config", help="Path to a YAML configuration file."
     ),
+    json_output: bool = _JSON_OPTION,
 ) -> None:
     """Validate a YAML configuration file without running anything."""
+    renderer = get_renderer(json_output=json_output)
     try:
         loaded = load_config(config)
     except ConfigError as exc:
-        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        renderer.error(str(exc))
         raise typer.Exit(code=ExitCode.USAGE_ERROR) from exc
 
-    typer.secho(f"Configuration is valid: {config}", fg=typer.colors.GREEN)
-    typer.echo(f"  target:    {loaded.target.base_url}")
-    formats = ", ".join(loaded.reporting.formats)
-    typer.echo(f"  reporting: {formats} -> {loaded.reporting.output_directory}")
+    renderer.config_valid(config, loaded)
 
 
 @app.command("list-tests")
@@ -50,6 +67,7 @@ def list_tests(
     category: str | None = typer.Option(
         None, "--category", help="Filter by attack category (e.g. jailbreak)."
     ),
+    json_output: bool = _JSON_OPTION,
 ) -> None:
     """List the available test cases loaded from the payload registry."""
     from llmsec.core.registry import load_all_test_cases
@@ -58,14 +76,7 @@ def list_tests(
     if category:
         cases = [c for c in cases if c.category.value == category]
 
-    if not cases:
-        typer.echo("No test cases found.")
-        return
-
-    for case in cases:
-        label = f"[{case.category.value:<28}] {case.severity.value:<8}"
-        typer.echo(f"{case.id:<12} {label} {case.name}")
-    typer.echo(f"\n{len(cases)} test case(s).")
+    get_renderer(json_output=json_output).list_tests(cases)
 
 
 @app.command()
@@ -78,14 +89,18 @@ def scan(
     output: Path | None = typer.Option(
         None, "--output", help="Directory to write reports to (overrides config)."
     ),
+    json_output: bool = _JSON_OPTION,
+    verbose: bool = _VERBOSE_OPTION,
+    debug: bool = _DEBUG_OPTION,
 ) -> None:
     """Run a security test campaign against a target."""
-    configure_logging()
+    configure_logging(level=_log_level(verbose=verbose, debug=debug))
+    renderer = get_renderer(json_output=json_output)
 
     try:
         cfg = load_config(config)
     except ConfigError as exc:
-        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        renderer.error(str(exc))
         raise typer.Exit(code=ExitCode.USAGE_ERROR) from exc
 
     if target:
@@ -94,13 +109,24 @@ def scan(
         cfg.reporting.output_directory = str(output)
 
     from llmsec.core.engine import run_campaign
+    from llmsec.core.registry import load_all_test_cases, select_suite
+
+    test_cases = select_suite(load_all_test_cases(), suite)
+    if not test_cases:
+        renderer.error(f"No test cases matched suite {suite!r}.")
+        raise typer.Exit(code=ExitCode.USAGE_ERROR)
 
     try:
-        exit_code = run_campaign(cfg, suite=suite)
+        with renderer.scan_progress(len(test_cases)) as on_result:
+            campaign, written = run_campaign(
+                cfg, suite=suite, test_cases=test_cases, on_result=on_result
+            )
     except LlmsecError as exc:
-        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        renderer.error(str(exc))
         raise typer.Exit(code=ExitCode.TARGET_ERROR) from exc
 
+    renderer.scan_summary(campaign, written)
+    exit_code = ExitCode.FINDINGS if campaign.failed_count > 0 else ExitCode.SUCCESS
     raise typer.Exit(code=exit_code)
 
 
@@ -115,26 +141,29 @@ def report(
     output: Path | None = typer.Option(
         None, "--output", help="Directory to write reports to (defaults to the input's directory)."
     ),
+    json_output: bool = _JSON_OPTION,
 ) -> None:
     """Regenerate report(s) from a previously saved results.json file."""
     from llmsec.constants import SUPPORTED_REPORT_FORMATS
     from llmsec.core.engine import regenerate_reports
 
+    renderer = get_renderer(json_output=json_output)
+
     unknown = set(formats) - SUPPORTED_REPORT_FORMATS
     if unknown:
-        typer.secho(
+        renderer.error(
             f"Unsupported report format(s): {sorted(unknown)}. "
-            f"Supported: {sorted(SUPPORTED_REPORT_FORMATS)}.",
-            fg=typer.colors.RED,
-            err=True,
+            f"Supported: {sorted(SUPPORTED_REPORT_FORMATS)}."
         )
         raise typer.Exit(code=ExitCode.USAGE_ERROR)
 
     try:
-        regenerate_reports(input_path, formats=formats, output_dir=output)
+        written = regenerate_reports(input_path, formats=formats, output_dir=output)
     except LlmsecError as exc:
-        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        renderer.error(str(exc))
         raise typer.Exit(code=ExitCode.USAGE_ERROR) from exc
+
+    renderer.report_written(written)
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -19,10 +20,33 @@ def test_version_command() -> None:
     assert __version__ in result.stdout
 
 
+def test_version_command_json() -> None:
+    result = runner.invoke(app, ["version", "--json"])
+    assert result.exit_code == 0
+    assert json.loads(result.output) == {"version": __version__}
+
+
 def test_validate_config_success() -> None:
     result = runner.invoke(app, ["validate-config", "--config", "configs/local.yaml"])
     assert result.exit_code == 0
     assert "Configuration is valid" in result.stdout
+
+
+def test_validate_config_json() -> None:
+    result = runner.invoke(app, ["validate-config", "--config", "configs/local.yaml", "--json"])
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["valid"] is True
+    assert payload["target"] == "http://localhost:8000"
+
+
+def test_validate_config_json_on_error(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app, ["validate-config", "--config", str(tmp_path / "nope.yaml"), "--json"]
+    )
+    assert result.exit_code == 2
+    payload = json.loads(result.output)
+    assert "error" in payload
 
 
 def test_validate_config_missing_file() -> None:
@@ -61,6 +85,15 @@ def test_list_tests_reports_none_found_for_empty_directory(
     result = runner.invoke(app, ["list-tests"])
     assert result.exit_code == 0
     assert "No test cases found" in result.output
+
+
+def test_list_tests_json(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LLMSEC_PAYLOADS_DIR", "tests/fixtures/sample_payloads")
+    result = runner.invoke(app, ["list-tests", "--json"])
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["count"] >= 1
+    assert any(c["id"] == "FIX-SPI-001" for c in payload["test_cases"])
 
 
 def test_report_command_rejects_missing_input(tmp_path: Path) -> None:

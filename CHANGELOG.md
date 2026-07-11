@@ -19,6 +19,13 @@ Enterprise-hardening pass on top of the 0.1.0 build — see `docs/architecture-r
   now still defaults to `generic_http` (documented behavior) via an explicit
   `model_validator(mode="before")` on `Config` — Pydantic discriminated unions require the
   discriminator field present in the input and don't support an implicit default variant.
+- **The CLI is now Rich-based.** `version`, `validate-config`, `list-tests`, `scan`, and
+  `report` all render through a new `Renderer` abstraction (`rendering.py`): colored tables and
+  a live progress bar by default, or a single clean JSON object on stdout with `--json`.
+  `scan` gained `--verbose`/`--debug` (default logging is now quiet — `WARNING` — instead of
+  always `INFO`). `core/engine.py` no longer prints anything itself; it returns data and the
+  CLI renders it, which is what makes `--json` a real separate code path instead of scraped
+  human-readable text.
 
 ## [0.1.0] — Unreleased
 

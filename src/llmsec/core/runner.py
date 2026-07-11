@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -141,11 +142,17 @@ async def run_campaign_async(
     *,
     redact: bool,
     extra_markers: tuple[str, ...] = (),
+    on_result: Callable[[TestResult], None] | None = None,
 ) -> list[TestResult]:
     """Run every test case, bounded by `campaign_config.max_concurrency`, stopping early (but
     letting in-flight requests finish) once a CRITICAL failure is found if
     `campaign_config.stop_on_critical` is set. Results are returned in the same order as
-    `test_cases`, regardless of completion order."""
+    `test_cases`, regardless of completion order.
+
+    `on_result`, if given, is called synchronously with each `TestResult` as soon as it's
+    produced (e.g. to drive a progress bar) — it runs on the event loop thread, so it must not
+    block or do slow work.
+    """
     order = {tc.id: i for i, tc in enumerate(test_cases)}
     queue: asyncio.Queue[TestCase] = asyncio.Queue()
     for tc in test_cases:
@@ -173,6 +180,8 @@ async def run_campaign_async(
             )
             async with results_lock:
                 results.append(result)
+            if on_result is not None:
+                on_result(result)
             is_critical_finding = (
                 result.status == ResultStatus.FAILED and result.severity == Severity.CRITICAL
             )

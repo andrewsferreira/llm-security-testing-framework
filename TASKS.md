@@ -45,14 +45,25 @@ prerequisites on others, e.g. providers depend on the config refactor).
       bandit/pip-audit clean, verified against a real running lab (not just unit tests) before
       and after.
 
-## Phase B — Professional CLI (Rich)
+## Phase B — Professional CLI (Rich) ✅ DONE
 
-- [ ] Adopt `rich` for tables, colors, progress bars during `scan`.
-- [ ] `--verbose` / `--debug` flags distinct from the current fixed `INFO` logging level.
-- [ ] `--json` output mode for scriptable/CI consumption of `scan`/`list-tests`/`report`.
-- [ ] Route `core/engine.py`'s current `print()` calls through a renderer abstraction so Rich
-      progress output and structured/JSON output don't fight each other.
+- [x] Adopted `rich` (already a declared dependency) for tables, colors, and a live progress
+      bar during `scan` — a `Renderer` ABC (`rendering.py`) with two implementations,
+      `RichRenderer` (default) and `JsonRenderer` (`--json`).
+- [x] `--verbose` / `--debug` flags on `scan`, distinct from the previous fixed `INFO` logging
+      level (default is now `WARNING`, i.e. quiet; `--verbose` → `INFO`; `--debug` → `DEBUG`).
+- [x] `--json` output mode on `version`, `validate-config`, `list-tests`, `scan`, and `report` —
+      one JSON object per command on stdout, safe to pipe into `jq`/CI steps.
+- [x] `core/engine.py` no longer prints anything — `run_campaign`/`regenerate_reports` return
+      data (`Campaign`, `dict[str, Path]`) and the CLI renders it via the chosen `Renderer`.
+      This is exactly the separation `docs/architecture-review.md` flagged as missing.
+- [x] `core/runner.run_campaign_async` gained an optional `on_result` callback, invoked
+      synchronously as each `TestResult` completes, which is what drives the live progress bar
+      (and is a no-op in `--json` mode, keeping stdout a single clean JSON document).
 - [x] CLI binary name: **decided, stays `llmsec`** — no rename.
+- [x] Verified with a real pseudo-TTY run against the live lab (progress bar renders, severity/
+      status tables color-coded, `--json`/`--verbose` behave as documented) — not just unit
+      tests. 263 tests (18 new), ~95% coverage, ruff/mypy strict/bandit/pip-audit clean.
 
 ## Phase C — MITRE ATLAS mapping
 

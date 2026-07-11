@@ -1,17 +1,23 @@
-"""The campaign execution engine: loads test cases, runs them against a target, scores the
-results, and writes reports in every configured format."""
+"""The campaign execution engine: runs test cases against a target, scores the results, and
+writes reports in every configured format.
+
+Deliberately does no printing/rendering of its own — it returns data (a `Campaign` and the
+report paths written) and raises exceptions on failure. All human/JSON output formatting lives
+in `rendering.py`, called from the CLI. This split is what makes `--json` a real, separate
+output path rather than something scraped out of human-formatted text (see
+docs/architecture-review.md, "core/engine.py prints directly to stdout").
+"""
 
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from llmsec import __version__
 from llmsec.config import Config
-from llmsec.constants import ExitCode
-from llmsec.core.registry import load_all_test_cases, select_suite
 from llmsec.core.runner import run_campaign_async
 from llmsec.exceptions import LlmsecError
 from llmsec.logging import get_logger
@@ -33,23 +39,26 @@ async def _run_and_cleanup(
     campaign_id: str,
     *,
     redact: bool,
+    on_result: Callable[[TestResult], None] | None,
 ) -> list[TestResult]:
     try:
         return await run_campaign_async(
-            target, test_cases, campaign_config, campaign_id, redact=redact
+            target, test_cases, campaign_config, campaign_id, redact=redact, on_result=on_result
         )
     finally:
         await target.aclose()
 
 
-def run_campaign(cfg: Config, *, suite: str) -> int:
-    all_cases = load_all_test_cases()
-    test_cases = select_suite(all_cases, suite)
-    if not test_cases:
-        logger.error(f"No test cases matched suite {suite!r}.")
-        print(f"No test cases matched suite {suite!r}.")
-        return int(ExitCode.USAGE_ERROR)
-
+def run_campaign(
+    cfg: Config,
+    *,
+    suite: str,
+    test_cases: list[TestCase],
+    on_result: Callable[[TestResult], None] | None = None,
+) -> tuple[Campaign, dict[str, Path]]:
+    """Run `test_cases` (already resolved/filtered by the caller — see
+    `core.registry.load_all_test_cases`/`select_suite`) against `cfg.target`, score the
+    results, and write reports. Returns the `Campaign` and the format->path mapping written."""
     target = build_target(cfg.target, allow_external=cfg.security.allow_external_targets)
     campaign_id = new_campaign_id()
     started_at = datetime.now(UTC)
@@ -61,6 +70,7 @@ def run_campaign(cfg: Config, *, suite: str) -> int:
             cfg.campaign,
             campaign_id,
             redact=cfg.security.redact_sensitive_values,
+            on_result=on_result,
         )
     )
 
@@ -81,23 +91,14 @@ def run_campaign(cfg: Config, *, suite: str) -> int:
     written = write_reports(campaign, formats=cfg.reporting.formats, output_dir=output_dir)
     logger.info(f"Wrote reports to {output_dir}", extra={"campaign_id": campaign_id})
 
-    _print_summary(campaign, written)
-
-    return int(ExitCode.FINDINGS) if campaign.failed_count > 0 else int(ExitCode.SUCCESS)
+    return campaign, written
 
 
-def _print_summary(campaign: Campaign, written: dict[str, Path]) -> None:
-    print(f"\nCampaign {campaign.id} ({campaign.suite}): {campaign.total_tests} test(s)")
-    print(f"  passed:       {campaign.passed_count}")
-    print(f"  failed:       {campaign.failed_count}")
-    print(f"  inconclusive: {campaign.inconclusive_count}")
-    print(f"  errors:       {campaign.error_count}")
-    for fmt, path in written.items():
-        print(f"  {fmt:<10}: {path}")
-
-
-def regenerate_reports(input_path: Path, *, formats: list[str], output_dir: Path | None) -> None:
-    """Re-render report formats from a previously written JSON report."""
+def regenerate_reports(
+    input_path: Path, *, formats: list[str], output_dir: Path | None
+) -> dict[str, Path]:
+    """Re-render report formats from a previously written JSON report. Returns the format->path
+    mapping written."""
     if not input_path.is_file():
         raise LlmsecError(f"Input file not found: {input_path}")
 
@@ -114,7 +115,6 @@ def regenerate_reports(input_path: Path, *, formats: list[str], output_dir: Path
         campaign = Campaign.model_validate(campaign_data)
     except Exception as exc:  # pydantic ValidationError or similar
         raise LlmsecError(f"{input_path} does not contain a valid campaign report: {exc}") from exc
+
     target_dir = output_dir if output_dir is not None else input_path.parent
-    written = write_reports(campaign, formats=formats, output_dir=target_dir)
-    for fmt, path in written.items():
-        print(f"{fmt:<10}: {path}")
+    return write_reports(campaign, formats=formats, output_dir=target_dir)
