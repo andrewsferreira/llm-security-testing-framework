@@ -79,23 +79,34 @@ def render(campaign: Campaign, summary: CampaignSummary) -> str:
         lines.append("No findings — every test case resisted its attack in this campaign.")
         lines.append("")
     else:
-        lines.append("| Risk | Severity | Category | Test | Name |")
-        lines.append("| --- | --- | --- | --- | --- |")
+        lines.append("| Risk | Severity | Category | Test | Name | OWASP | ATLAS |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- |")
         for finding in summary.findings:
+            info = _CATALOG_BY_VALUE.get(finding.category.value)
+            owasp = info.owasp_llm_reference if info else "n/a"
+            atlas = info.atlas_technique_id if info else "n/a"
             lines.append(
                 f"| {finding.risk_score:.2f} | {finding.severity.value} | "
-                f"{finding.category.value} | {finding.test_id} | {finding.test_name} |"
+                f"{finding.category.value} | {finding.test_id} | {finding.test_name} | "
+                f"{owasp} | {atlas} |"
             )
         lines.append("")
 
         lines.append("### Evidence")
         lines.append("")
         for finding in summary.findings:
+            info = _CATALOG_BY_VALUE.get(finding.category.value)
             lines.append(f"#### {finding.test_id} — {finding.test_name}")
             lines.append("")
             lines.append(f"- **Status:** {_status_emoji(finding.status)}")
             lines.append(f"- **Risk score:** {finding.risk_score:.2f}/10")
             lines.append(f"- **Evaluator:** {finding.evaluator}")
+            if info is not None:
+                lines.append(
+                    f"- **OWASP LLM Top 10:** {info.owasp_llm_reference}  \n"
+                    f"  **MITRE ATLAS:** {info.atlas_technique_id} "
+                    f"({info.atlas_technique_name}) — {info.atlas_tactic}"
+                )
             if finding.evidence.matched_indicators:
                 lines.append(
                     f"- **Matched indicators:** {', '.join(finding.evidence.matched_indicators)}"

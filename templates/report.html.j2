@@ -60,6 +60,8 @@
     padding: .6rem .8rem; overflow-x: auto; font-size: .8rem; white-space: pre-wrap; word-break: break-word;
   }
   .muted { color: var(--muted); }
+  .chart { margin: 1rem 0; }
+  .chart svg { max-width: 100%; height: auto; display: block; }
   footer { margin-top: 3rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); padding-top: 1rem; }
   .hidden { display: none; }
 </style>
@@ -97,6 +99,9 @@
       <td><span class="badge sev-low">{{ summary.severity_distribution_findings.low }}</span></td>
     </tr>
   </table>
+  {% if severity_chart_svg %}
+  <div class="chart">{{ severity_chart_svg | safe }}</div>
+  {% endif %}
 
   <h2>Category distribution (findings only)</h2>
   <table>
@@ -140,7 +145,7 @@
 
   <table>
     <thead>
-      <tr><th>Risk</th><th>Severity</th><th>Category</th><th>Test</th><th>Name</th></tr>
+      <tr><th>Risk</th><th>Severity</th><th>Category</th><th>Test</th><th>Name</th><th>OWASP</th><th>ATLAS</th></tr>
     </thead>
     <tbody>
       {% for finding in summary.findings %}
@@ -150,10 +155,17 @@
         <td>{{ finding.category.value }}</td>
         <td>{{ finding.test_id }}</td>
         <td><a href="#finding-{{ finding.test_id }}">{{ finding.test_name }}</a></td>
+        <td>{{ catalog[finding.category.value].owasp_llm_reference if finding.category.value in catalog else "n/a" }}</td>
+        <td>{{ catalog[finding.category.value].atlas_technique_id if finding.category.value in catalog else "n/a" }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+
+  {% if timeline_svg %}
+  <h3>Timeline</h3>
+  <div class="chart">{{ timeline_svg | safe }}</div>
+  {% endif %}
 
   <h3>Evidence</h3>
   {% for finding in summary.findings %}
@@ -164,6 +176,10 @@
       <dt>Status</dt><dd class="status-{{ finding.status.value }}">{{ finding.status.value }}</dd>
       <dt>Risk score</dt><dd>{{ "%.2f"|format(finding.risk_score or 0) }} / 10</dd>
       <dt>Evaluator</dt><dd>{{ finding.evaluator }}</dd>
+      {% if finding.category.value in catalog %}
+      <dt>OWASP LLM Top 10</dt><dd>{{ catalog[finding.category.value].owasp_llm_reference }}</dd>
+      <dt>MITRE ATLAS</dt><dd>{{ catalog[finding.category.value].atlas_technique_id }} ({{ catalog[finding.category.value].atlas_technique_name }}) — {{ catalog[finding.category.value].atlas_tactic }}</dd>
+      {% endif %}
       {% if finding.evidence.matched_indicators %}
       <dt>Matched indicators</dt><dd>{{ finding.evidence.matched_indicators|join(", ") }}</dd>
       {% endif %}

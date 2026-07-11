@@ -41,7 +41,7 @@ Keeping the lab and the framework independent means:
 
 | Module | Responsibility |
 | --- | --- |
-| `cli.py` | Typer CLI: `scan`, `list-tests`, `validate-config`, `report`, `version` |
+| `cli.py` | Typer CLI: `scan`, `list-tests`, `validate-config`, `report`, `compare`, `version` |
 | `config.py` | Loads and validates `configs/*.yaml` into a `Config` model; enforces the SSRF/local-target gate at load time |
 | `models/` | Pydantic models: `TestCase`, `TestResult`, `TargetConfig`, `Campaign` |
 | `core/registry.py` | Discovers and validates `TestCase` objects from a directory of YAML files; resolves `--suite` names/aliases to categories |

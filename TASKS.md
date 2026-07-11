@@ -124,12 +124,34 @@ prerequisites on others, e.g. providers depend on the config refactor).
       (correctly rejected at config-validation time with a clear error naming the missing
       field). 286 tests (17 new), ruff/mypy strict/bandit/pip-audit clean, ~94% coverage.
 
-## Phase E — Reporting enhancements *(after C, D)*
+## Phase E — Reporting enhancements *(after C, D)* ✅ DONE
 
-- [ ] Surface OWASP + ATLAS mapping per finding in reports.
-- [ ] Provider comparison view (when multiple campaigns/providers are supplied).
-- [ ] Charts/timeline — inline SVG or vanilla JS only, no CDN (keeps the existing HTML report's
-      "no external scripts" property).
+- [x] Surfaced OWASP + ATLAS mapping **per finding**, not just per category (Phase C's category-
+      level table stays too — this is additive). JSON: each item in `summary.findings` gained
+      `owasp_llm_reference`/`atlas_technique_id`/`atlas_technique_name`/`atlas_tactic`.
+      Markdown/HTML: two new columns on the Findings table plus two new lines in each finding's
+      Evidence section. SARIF already satisfied this from Phase C (`rules` are keyed 1:1 by
+      `test_id`, i.e. already per-finding).
+- [x] **Provider/campaign comparison view.** New `core/comparison.py` (`compare_campaigns`,
+      reusing `core/scoring.summarize()` per campaign rather than duplicating it) and
+      `reporters/comparison_reporter.py` (markdown/HTML/JSON). Labels each compared campaign as
+      `provider:model` for a provider target, else its base URL. New `llmsec compare --input
+      <a> --input <b> [--input <c> ...]` CLI command (2+ required). Verified live: ran the
+      bundled lab in both `vulnerable` and `hardened` mode, scanned each for real, and compared
+      the two real campaign JSONs — the comparison correctly showed 9/9 failed (critical/high/
+      medium) vs 0/9 failed.
+- [x] **Inline SVG charts, CDN-free** (`reporters/charts.py`, shared by the single-campaign HTML
+      report and the new comparison HTML report): a severity-distribution horizontal bar chart,
+      a findings timeline (failed findings scattered by elapsed time, colored by severity), and
+      a per-category grouped bar chart in the comparison view. Colors reference the page's own
+      CSS custom properties (`var(--critical)` etc.) rather than hardcoded hex, so the existing
+      theme stays the single source of truth. Any interpolated text (a finding's `test_id`) is
+      run through `html.escape` as defense-in-depth (verified with a dedicated XSS-safety test),
+      even though nothing in this data is untrusted target output today.
+- [x] Verified end-to-end against the real running lab (not just unit tests): both modes'
+      reports rendered their new charts correctly, and `llmsec compare` produced a real,
+      correct 3-format comparison from two live scans. 309 tests (23 new), ruff/mypy strict/
+      bandit/pip-audit clean, ~94% coverage.
 
 ## Phase F — Dashboard *(after E)*
 

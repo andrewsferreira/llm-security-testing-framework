@@ -1,5 +1,5 @@
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from llmsec.core.scoring import summarize
@@ -91,6 +91,19 @@ def test_json_reporter_includes_framework_mappings() -> None:
     assert mapping["atlas_tactic"] == "Defense Evasion"
 
 
+def test_json_reporter_findings_include_per_finding_mapping() -> None:
+    campaign = _campaign_with_finding()
+    summary = summarize(campaign)
+    content = json_reporter.render(campaign, summary)
+    data = json.loads(content)
+    finding = data["summary"]["findings"][0]
+    assert finding["category"] == "jailbreak"
+    assert finding["owasp_llm_reference"] == "LLM01: Prompt Injection"
+    assert finding["atlas_technique_id"] == "AML.T0054"
+    assert finding["atlas_technique_name"] == "LLM Jailbreak"
+    assert finding["atlas_tactic"] == "Defense Evasion"
+
+
 def test_markdown_reporter_includes_key_sections() -> None:
     campaign = _campaign_with_finding()
     summary = summarize(campaign)
@@ -111,6 +124,15 @@ def test_markdown_reporter_category_table_includes_owasp_and_atlas() -> None:
     assert "OWASP LLM Top 10" in content
     assert "MITRE ATLAS" in content
     assert "AML.T0054" in content  # jailbreak's ATLAS technique id
+
+
+def test_markdown_reporter_findings_table_and_evidence_include_owasp_and_atlas() -> None:
+    campaign = _campaign_with_finding()
+    summary = summarize(campaign)
+    content = markdown_reporter.render(campaign, summary)
+    assert "| Risk | Severity | Category | Test | Name | OWASP | ATLAS |" in content
+    assert "**OWASP LLM Top 10:** LLM01: Prompt Injection" in content
+    assert "**MITRE ATLAS:** AML.T0054" in content
 
 
 def test_markdown_reporter_handles_no_findings() -> None:
@@ -191,6 +213,28 @@ def test_html_reporter_category_table_includes_owasp_and_atlas() -> None:
     assert "OWASP LLM Top 10" in content
     assert "MITRE ATLAS" in content
     assert "AML.T0054" in content  # jailbreak's ATLAS technique id
+
+
+def test_html_reporter_includes_severity_and_timeline_charts() -> None:
+    # A nonzero campaign duration, unlike `_campaign_with_finding`'s started==finished fixture,
+    # so the findings timeline (which needs a measurable duration) actually renders.
+    campaign = _campaign(
+        [_result("A", status=ResultStatus.FAILED, severity=Severity.CRITICAL, risk_score=9.5)]
+    )
+    campaign.finished_at = campaign.started_at + timedelta(seconds=30)
+    summary = summarize(campaign)
+    content = html_reporter.render(campaign, summary)
+    assert content.count("<svg") == 2  # severity bar chart + findings timeline
+    assert '<div class="chart">' in content
+
+
+def test_html_reporter_findings_table_and_evidence_include_owasp_and_atlas() -> None:
+    campaign = _campaign_with_finding()
+    summary = summarize(campaign)
+    content = html_reporter.render(campaign, summary)
+    assert "<th>OWASP</th><th>ATLAS</th>" in content
+    assert "<dt>OWASP LLM Top 10</dt><dd>LLM01: Prompt Injection</dd>" in content
+    assert "<dt>MITRE ATLAS</dt><dd>AML.T0054" in content
 
 
 def test_write_reports_writes_every_requested_format(tmp_path: Path) -> None:

@@ -7,6 +7,7 @@ from enum import IntEnum
 FRAMEWORK_NAME = "llmsec"
 
 SUPPORTED_REPORT_FORMATS: frozenset[str] = frozenset({"json", "markdown", "html", "sarif"})
+SUPPORTED_COMPARISON_FORMATS: frozenset[str] = frozenset({"json", "markdown", "html"})
 
 DEFAULT_CONFIG_PATH = "configs/local.yaml"
 DEFAULT_OUTPUT_DIR = "reports"

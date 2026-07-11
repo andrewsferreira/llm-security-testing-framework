@@ -148,3 +148,84 @@ def test_report_command_regenerates_from_a_real_campaign_json(tmp_path: Path) ->
     )
     assert result.exit_code == 0
     assert (regenerated_dir / "report.md").is_file()
+
+
+def _write_campaign_json(path: Path, *, campaign_id: str, base_url: str) -> Path:
+    now = datetime.now(UTC)
+    campaign = Campaign(
+        id=campaign_id,
+        suite="all",
+        target=GenericHttpTargetConfig(base_url=base_url),
+        config=CampaignConfig(),
+        framework_version="0.1.0",
+        started_at=now,
+        finished_at=now,
+        total_tests=0,
+        results=[],
+    )
+    write_reports(campaign, formats=["json"], output_dir=path)
+    return path / "results.json"
+
+
+def test_compare_command_rejects_a_single_input(tmp_path: Path) -> None:
+    campaign_json = _write_campaign_json(tmp_path / "a", campaign_id="a", base_url="http://x")
+    result = runner.invoke(app, ["compare", "--input", str(campaign_json)])
+    assert result.exit_code == 2
+    assert "at least twice" in result.output
+
+
+def test_compare_command_rejects_unsupported_format(tmp_path: Path) -> None:
+    a = _write_campaign_json(tmp_path / "a", campaign_id="a", base_url="http://x")
+    b = _write_campaign_json(tmp_path / "b", campaign_id="b", base_url="http://y")
+    result = runner.invoke(
+        app, ["compare", "--input", str(a), "--input", str(b), "--format", "sarif"]
+    )
+    assert result.exit_code == 2
+    assert "Unsupported comparison format" in result.output
+
+
+def test_compare_command_writes_comparison_reports(tmp_path: Path) -> None:
+    a = _write_campaign_json(tmp_path / "a", campaign_id="a", base_url="http://localhost:8000")
+    b = _write_campaign_json(tmp_path / "b", campaign_id="b", base_url="http://localhost:8001")
+    output_dir = tmp_path / "comparison"
+
+    result = runner.invoke(
+        app,
+        [
+            "compare",
+            "--input",
+            str(a),
+            "--input",
+            str(b),
+            "--output",
+            str(output_dir),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert (output_dir / "comparison.md").is_file()
+    assert (output_dir / "comparison.html").is_file()
+
+
+def test_compare_command_json_output(tmp_path: Path) -> None:
+    a = _write_campaign_json(tmp_path / "a", campaign_id="a", base_url="http://localhost:8000")
+    b = _write_campaign_json(tmp_path / "b", campaign_id="b", base_url="http://localhost:8001")
+    output_dir = tmp_path / "comparison"
+
+    result = runner.invoke(
+        app,
+        [
+            "compare",
+            "--input",
+            str(a),
+            "--input",
+            str(b),
+            "--output",
+            str(output_dir),
+            "--format",
+            "json",
+            "--json",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert "json" in payload["reports"]

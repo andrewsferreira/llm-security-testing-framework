@@ -17,6 +17,7 @@ from llmsec.attacks import ATTACK_CATALOG
 from llmsec.core.scoring import CampaignSummary
 from llmsec.models.campaign import Campaign
 from llmsec.models.test_case import AttackCategory, Severity
+from llmsec.reporters.charts import findings_timeline_svg, severity_bar_chart_svg
 
 TEMPLATES_DIR_ENV_VAR = "LLMSEC_TEMPLATES_DIR"
 _TEMPLATE_NAME = "report.html.j2"
@@ -48,4 +49,10 @@ def render(campaign: Campaign, summary: CampaignSummary) -> str:
             s.value for s in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW)
         ],
         catalog={category.value: info for category, info in ATTACK_CATALOG.items()},
+        severity_chart_svg=severity_bar_chart_svg(summary.severity_distribution_findings),
+        timeline_svg=findings_timeline_svg(
+            summary.findings,
+            started_at=campaign.started_at,
+            duration_seconds=summary.duration_seconds,
+        ),
     )

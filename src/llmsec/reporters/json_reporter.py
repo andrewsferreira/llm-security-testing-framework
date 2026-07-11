@@ -25,9 +25,19 @@ _FRAMEWORK_MAPPINGS = {
 
 
 def render(campaign: Campaign, summary: CampaignSummary) -> str:
+    summary_payload = to_jsonable(summary)
+    for finding in summary_payload.get("findings", []):
+        mapping = _FRAMEWORK_MAPPINGS.get(finding.get("category"))
+        if mapping is not None:
+            finding["owasp_llm_reference"] = mapping["owasp_llm_reference"]
+            finding["atlas_technique_id"] = mapping["atlas_technique_id"]
+            finding["atlas_technique_name"] = mapping["atlas_technique_name"]
+            finding["atlas_tactic"] = mapping["atlas_tactic"]
+
     payload = {
-        "summary": to_jsonable(summary),
+        "summary": summary_payload,
         "campaign": to_jsonable(campaign),
+        # A compact legend for every category, in addition to being attached per finding above.
         "framework_mappings": _FRAMEWORK_MAPPINGS,
     }
     return json.dumps(payload, indent=2, ensure_ascii=False) + "\n"

@@ -166,5 +166,49 @@ def report(
     renderer.report_written(written)
 
 
+@app.command()
+def compare(
+    input_paths: list[Path] = typer.Option(
+        ...,
+        "--input",
+        help="Path to a results.json file (repeat --input for each campaign; at least 2).",
+    ),
+    formats: list[str] = typer.Option(
+        ["markdown", "html"], "--format", help="Comparison format(s) to generate."
+    ),
+    output: Path = typer.Option(
+        Path("reports/comparison"), "--output", help="Directory to write the comparison to."
+    ),
+    json_output: bool = _JSON_OPTION,
+) -> None:
+    """Compare 2+ previously saved campaigns side by side (e.g. different providers, or a lab's
+    vulnerable vs. hardened mode) — one report per campaign is not enough to see how they
+    differ; this renders category/severity distributions next to each other."""
+    from llmsec.constants import SUPPORTED_COMPARISON_FORMATS
+    from llmsec.core.engine import compare_campaign_reports
+
+    renderer = get_renderer(json_output=json_output)
+
+    if len(input_paths) < 2:
+        renderer.error("--input must be given at least twice (2+ campaigns to compare).")
+        raise typer.Exit(code=ExitCode.USAGE_ERROR)
+
+    unknown = set(formats) - SUPPORTED_COMPARISON_FORMATS
+    if unknown:
+        renderer.error(
+            f"Unsupported comparison format(s): {sorted(unknown)}. "
+            f"Supported: {sorted(SUPPORTED_COMPARISON_FORMATS)}."
+        )
+        raise typer.Exit(code=ExitCode.USAGE_ERROR)
+
+    try:
+        written = compare_campaign_reports(input_paths, formats=formats, output_dir=output)
+    except LlmsecError as exc:
+        renderer.error(str(exc))
+        raise typer.Exit(code=ExitCode.USAGE_ERROR) from exc
+
+    renderer.report_written(written)
+
+
 if __name__ == "__main__":
     app()

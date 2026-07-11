@@ -94,11 +94,10 @@ def run_campaign(
     return campaign, written
 
 
-def regenerate_reports(
-    input_path: Path, *, formats: list[str], output_dir: Path | None
-) -> dict[str, Path]:
-    """Re-render report formats from a previously written JSON report. Returns the format->path
-    mapping written."""
+def load_campaign_from_json(input_path: Path) -> Campaign:
+    """Loads a `Campaign` back out of a `results.json` file produced by `llmsec scan` (or
+    anything shaped like `{"campaign": {...}}`/a bare campaign object). Shared by
+    `regenerate_reports` and `compare_campaign_reports` below."""
     if not input_path.is_file():
         raise LlmsecError(f"Input file not found: {input_path}")
 
@@ -112,9 +111,29 @@ def regenerate_reports(
         raise LlmsecError(f"{input_path} does not contain a recognizable campaign report.")
 
     try:
-        campaign = Campaign.model_validate(campaign_data)
+        return Campaign.model_validate(campaign_data)
     except Exception as exc:  # pydantic ValidationError or similar
         raise LlmsecError(f"{input_path} does not contain a valid campaign report: {exc}") from exc
 
+
+def regenerate_reports(
+    input_path: Path, *, formats: list[str], output_dir: Path | None
+) -> dict[str, Path]:
+    """Re-render report formats from a previously written JSON report. Returns the format->path
+    mapping written."""
+    campaign = load_campaign_from_json(input_path)
     target_dir = output_dir if output_dir is not None else input_path.parent
     return write_reports(campaign, formats=formats, output_dir=target_dir)
+
+
+def compare_campaign_reports(
+    input_paths: list[Path], *, formats: list[str], output_dir: Path
+) -> dict[str, Path]:
+    """Loads 2+ previously written `results.json` files and renders a side-by-side comparison
+    report. Returns the format->path mapping written."""
+    from llmsec.core.comparison import compare_campaigns
+    from llmsec.reporters import write_comparison_reports
+
+    campaigns = [load_campaign_from_json(path) for path in input_paths]
+    comparison = compare_campaigns(campaigns)
+    return write_comparison_reports(comparison, formats=formats, output_dir=output_dir)

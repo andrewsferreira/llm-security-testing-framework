@@ -37,6 +37,15 @@ Enterprise-hardening pass on top of the 0.1.0 build — see `docs/architecture-r
   extractor dispatch tables. Added a shared contract test, parametrized over all 8 providers,
   asserting each one's raw credential authenticates the request but never ends up in
   `TargetResponse`/reports or in any log record.
+- **Reporting enhancements**: OWASP + ATLAS mapping now surfaced per finding (not just per
+  category) in JSON/Markdown/HTML. Added a **provider/campaign comparison view** —
+  `core/comparison.py` + `reporters/comparison_reporter.py` + a new `llmsec compare --input
+  <a> --input <b> [...]` CLI command — for comparing 2+ completed campaigns side by side (e.g.
+  different providers, or a lab's vulnerable vs. hardened mode) across pass/fail counts,
+  severity distribution, and category distribution. Added CDN-free inline SVG charts
+  (`reporters/charts.py`, shared by the single-campaign and comparison HTML reports): a
+  severity bar chart, a findings timeline, and per-category comparison bars — all colored via
+  the page's own existing CSS custom properties, no charting library, no external script.
 - **Added a MITRE ATLAS mapping alongside the existing OWASP LLM Top 10 mapping.**
   `AttackSuiteInfo` gained `atlas_technique_id`/`atlas_technique_name`/`atlas_tactic`, populated
   for all 9 attack categories against the public ATLAS matrix. Best-effort where ATLAS's
