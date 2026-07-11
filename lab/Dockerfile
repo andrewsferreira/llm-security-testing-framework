@@ -2,7 +2,7 @@
 # The lab target image: a deliberately fake, safe-to-attack chatbot/agent (see lab/README.md).
 # Build from the repo root: `docker build -f lab/Dockerfile -t llmsec-lab .`
 
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 WORKDIR /build
 
@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir --upgrade pip \
         "uvicorn[standard]>=0.32" \
         "pydantic>=2.9"
 
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 RUN useradd --create-home --uid 1000 --shell /usr/sbin/nologin lab
 
