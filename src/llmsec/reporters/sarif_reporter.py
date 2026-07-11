@@ -13,10 +13,13 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from llmsec.attacks import ATTACK_CATALOG
 from llmsec.core.scoring import CampaignSummary
 from llmsec.models.campaign import Campaign
 from llmsec.models.result import TestResult
 from llmsec.models.test_case import Severity
+
+_CATALOG_BY_VALUE = {category.value: info for category, info in ATTACK_CATALOG.items()}
 
 _SARIF_SCHEMA = (
     "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
@@ -30,13 +33,23 @@ _SARIF_LEVELS: dict[Severity, str] = {
 
 
 def _rule(finding: TestResult) -> dict[str, Any]:
+    info = _CATALOG_BY_VALUE.get(finding.category.value)
+    properties: dict[str, Any] = {
+        "category": finding.category.value,
+        "severity": finding.severity.value,
+    }
+    if info is not None:
+        properties["owaspLlmReference"] = info.owasp_llm_reference
+        properties["atlasTechniqueId"] = info.atlas_technique_id
+        properties["atlasTechniqueName"] = info.atlas_technique_name
+        properties["atlasTactic"] = info.atlas_tactic
     return {
         "id": finding.test_id,
         "name": finding.test_name.replace(" ", ""),
         "shortDescription": {"text": finding.test_name},
         "fullDescription": {"text": finding.explanation},
         "helpUri": "https://github.com/andrewsferreira/llm-security-testing-framework",
-        "properties": {"category": finding.category.value, "severity": finding.severity.value},
+        "properties": properties,
     }
 
 

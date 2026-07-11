@@ -10,4 +10,7 @@ SUITE_INFO = AttackSuiteInfo(
     ),
     payload_file="data_exfiltration.yaml",
     owasp_llm_reference="LLM02: Sensitive Information Disclosure",
+    atlas_technique_id="AML.T0057",
+    atlas_technique_name="LLM Data Leakage",
+    atlas_tactic="Exfiltration",
 )

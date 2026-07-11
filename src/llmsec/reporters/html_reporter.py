@@ -13,6 +13,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from llmsec.attacks import ATTACK_CATALOG
 from llmsec.core.scoring import CampaignSummary
 from llmsec.models.campaign import Campaign
 from llmsec.models.test_case import AttackCategory, Severity
@@ -46,4 +47,5 @@ def render(campaign: Campaign, summary: CampaignSummary) -> str:
         severities=[
             s.value for s in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW)
         ],
+        catalog={category.value: info for category, info in ATTACK_CATALOG.items()},
     )

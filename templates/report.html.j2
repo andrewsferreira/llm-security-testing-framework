@@ -100,9 +100,20 @@
 
   <h2>Category distribution (findings only)</h2>
   <table>
-    <tr><th>Category</th><th>Findings</th></tr>
+    <tr><th>Category</th><th>Findings</th><th>OWASP LLM Top 10</th><th>MITRE ATLAS</th></tr>
     {% for category, count in summary.category_distribution_findings.items()|sort %}
-    <tr><td>{{ category }}</td><td>{{ count }}</td></tr>
+    <tr>
+      <td>{{ category }}</td>
+      <td>{{ count }}</td>
+      <td>{{ catalog[category].owasp_llm_reference if category in catalog else "n/a" }}</td>
+      <td>
+        {% if category in catalog %}
+        {{ catalog[category].atlas_technique_id }} ({{ catalog[category].atlas_tactic }})
+        {% else %}
+        n/a
+        {% endif %}
+      </td>
+    </tr>
     {% endfor %}
   </table>
 

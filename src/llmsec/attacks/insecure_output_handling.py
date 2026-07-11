@@ -11,4 +11,7 @@ SUITE_INFO = AttackSuiteInfo(
     ),
     payload_file="insecure_output_handling.yaml",
     owasp_llm_reference="LLM05: Improper Output Handling",
+    atlas_technique_id="AML.T0048",
+    atlas_technique_name="External Harms",
+    atlas_tactic="Impact",
 )

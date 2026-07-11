@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from llmsec.attacks import ATTACK_CATALOG
 from llmsec.core.scoring import CampaignSummary
 from llmsec.models.campaign import Campaign
 from llmsec.models.result import ResultStatus
+
+_CATALOG_BY_VALUE = {category.value: info for category, info in ATTACK_CATALOG.items()}
 
 _LIMITATIONS = (
     "- The lab target is a rule-based simulator, not a real LLM; results reflect the "
@@ -61,10 +64,13 @@ def render(campaign: Campaign, summary: CampaignSummary) -> str:
 
     lines.append("## Category Distribution (findings only)")
     lines.append("")
-    lines.append("| Category | Findings |")
-    lines.append("| --- | --- |")
+    lines.append("| Category | Findings | OWASP LLM Top 10 | MITRE ATLAS |")
+    lines.append("| --- | --- | --- | --- |")
     for category, count in sorted(summary.category_distribution_findings.items()):
-        lines.append(f"| {category} | {count} |")
+        info = _CATALOG_BY_VALUE.get(category)
+        owasp = info.owasp_llm_reference if info else "n/a"
+        atlas = f"{info.atlas_technique_id} ({info.atlas_tactic})" if info else "n/a"
+        lines.append(f"| {category} | {count} | {owasp} | {atlas} |")
     lines.append("")
 
     lines.append("## Findings")

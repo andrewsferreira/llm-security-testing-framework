@@ -10,4 +10,7 @@ SUITE_INFO = AttackSuiteInfo(
     ),
     payload_file="tool_abuse.yaml",
     owasp_llm_reference="LLM06: Excessive Agency",
+    atlas_technique_id="AML.T0053",
+    atlas_technique_name="LLM Plugin Compromise",
+    atlas_tactic="Execution",
 )

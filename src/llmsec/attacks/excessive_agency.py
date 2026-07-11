@@ -11,4 +11,7 @@ SUITE_INFO = AttackSuiteInfo(
     ),
     payload_file="excessive_agency.yaml",
     owasp_llm_reference="LLM06: Excessive Agency",
+    atlas_technique_id="AML.T0048.002",
+    atlas_technique_name="External Harms: User Harm",
+    atlas_tactic="Impact",
 )

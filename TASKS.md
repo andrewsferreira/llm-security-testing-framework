@@ -65,11 +65,27 @@ prerequisites on others, e.g. providers depend on the config refactor).
       status tables color-coded, `--json`/`--verbose` behave as documented) — not just unit
       tests. 263 tests (18 new), ~95% coverage, ruff/mypy strict/bandit/pip-audit clean.
 
-## Phase C — MITRE ATLAS mapping
+## Phase C — MITRE ATLAS mapping ✅ DONE
 
-- [ ] Extend `attacks/base.py`'s `AttackSuiteInfo` with ATLAS technique ID/name/tactic fields,
-      mirroring the existing OWASP LLM Top 10 field.
-- [ ] Surface both mappings in every reporter (JSON/Markdown/HTML/SARIF).
+- [x] Extended `attacks/base.py`'s `AttackSuiteInfo` with `atlas_technique_id`/
+      `atlas_technique_name`/`atlas_tactic` fields, mirroring the existing OWASP LLM Top 10
+      field. Populated for all 9 categories against the public ATLAS matrix
+      (https://atlas.mitre.org). **Honest caveat, documented in `attacks/base.py`'s
+      docstring:** ATLAS models attacker TTPs, so the prompt-injection-family categories
+      (direct/indirect injection, jailbreak, context manipulation) map closely (`AML.T0051`
+      family, `AML.T0054`), while consumer-side categories (insecure output handling,
+      excessive agency) use the closest applicable "Impact"-tactic technique (`AML.T0048`
+      External Harms and its `.002` User Harm sub-technique) rather than a precise match —
+      flagged as best-effort, not a compliance-grade mapping.
+- [x] Surfaced both mappings in every reporter:
+      - **JSON**: new top-level `framework_mappings` key (category -> owasp/atlas fields).
+      - **Markdown/HTML**: the existing "Category Distribution" table gained OWASP LLM Top 10
+        and MITRE ATLAS columns.
+      - **SARIF**: each rule's `properties` gained `owaspLlmReference`/`atlasTechniqueId`/
+        `atlasTechniqueName`/`atlasTactic`.
+- [x] Verified with a real live scan (not just unit tests) — `llmsec scan` against the lab,
+      inspected the generated `report.md`/`report.html`/`results.json` directly. 269 tests
+      (6 new), ruff/mypy strict/bandit/pip-audit clean.
 
 ## Phase D — Provider expansion *(after Phase A)*
 

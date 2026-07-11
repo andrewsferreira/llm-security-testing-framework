@@ -11,4 +11,7 @@ SUITE_INFO = AttackSuiteInfo(
     ),
     payload_file="jailbreak.yaml",
     owasp_llm_reference="LLM01: Prompt Injection",
+    atlas_technique_id="AML.T0054",
+    atlas_technique_name="LLM Jailbreak",
+    atlas_tactic="Defense Evasion",
 )

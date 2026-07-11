@@ -10,4 +10,7 @@ SUITE_INFO = AttackSuiteInfo(
     ),
     payload_file="indirect_prompt_injection.yaml",
     owasp_llm_reference="LLM01: Prompt Injection",
+    atlas_technique_id="AML.T0051.001",
+    atlas_technique_name="LLM Prompt Injection: Indirect",
+    atlas_tactic="Initial Access",
 )

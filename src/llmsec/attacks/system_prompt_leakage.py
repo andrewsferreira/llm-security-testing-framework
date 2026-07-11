@@ -10,4 +10,7 @@ SUITE_INFO = AttackSuiteInfo(
     ),
     payload_file="system_prompt_leakage.yaml",
     owasp_llm_reference="LLM07: System Prompt Leakage",
+    atlas_technique_id="AML.T0056",
+    atlas_technique_name="LLM Meta Prompt Extraction",
+    atlas_tactic="Exfiltration",
 )

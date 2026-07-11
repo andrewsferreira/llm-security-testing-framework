@@ -80,6 +80,17 @@ def test_json_reporter_round_trips_summary_and_campaign() -> None:
     assert data["campaign"]["id"] == campaign.id
 
 
+def test_json_reporter_includes_framework_mappings() -> None:
+    campaign = _campaign_with_finding()
+    summary = summarize(campaign)
+    content = json_reporter.render(campaign, summary)
+    data = json.loads(content)
+    mapping = data["framework_mappings"]["jailbreak"]
+    assert mapping["owasp_llm_reference"] == "LLM01: Prompt Injection"
+    assert mapping["atlas_technique_id"] == "AML.T0054"
+    assert mapping["atlas_tactic"] == "Defense Evasion"
+
+
 def test_markdown_reporter_includes_key_sections() -> None:
     campaign = _campaign_with_finding()
     summary = summarize(campaign)
@@ -91,6 +102,15 @@ def test_markdown_reporter_includes_key_sections() -> None:
     assert "## Limitations" in content
     assert "A" in content  # the finding's test_id
     assert "do not trust untrusted input" in content
+
+
+def test_markdown_reporter_category_table_includes_owasp_and_atlas() -> None:
+    campaign = _campaign_with_finding()
+    summary = summarize(campaign)
+    content = markdown_reporter.render(campaign, summary)
+    assert "OWASP LLM Top 10" in content
+    assert "MITRE ATLAS" in content
+    assert "AML.T0054" in content  # jailbreak's ATLAS technique id
 
 
 def test_markdown_reporter_handles_no_findings() -> None:
@@ -111,6 +131,17 @@ def test_sarif_reporter_produces_valid_shape() -> None:
     assert len(run["results"]) == 1
     assert run["results"][0]["ruleId"] == "A"
     assert run["results"][0]["level"] == "error"
+
+
+def test_sarif_reporter_rule_includes_owasp_and_atlas_properties() -> None:
+    campaign = _campaign_with_finding()
+    summary = summarize(campaign)
+    content = sarif_reporter.render(campaign, summary)
+    data = json.loads(content)
+    rule_props = data["runs"][0]["tool"]["driver"]["rules"][0]["properties"]
+    assert rule_props["owaspLlmReference"] == "LLM01: Prompt Injection"
+    assert rule_props["atlasTechniqueId"] == "AML.T0054"
+    assert rule_props["atlasTactic"] == "Defense Evasion"
 
 
 def test_sarif_reporter_only_includes_failed_results() -> None:
@@ -151,6 +182,15 @@ def test_html_reporter_includes_filter_controls() -> None:
     assert 'id="category-filter"' in content
     assert 'id="severity-filter"' in content
     assert "<script src=" not in content  # no external script
+
+
+def test_html_reporter_category_table_includes_owasp_and_atlas() -> None:
+    campaign = _campaign_with_finding()
+    summary = summarize(campaign)
+    content = html_reporter.render(campaign, summary)
+    assert "OWASP LLM Top 10" in content
+    assert "MITRE ATLAS" in content
+    assert "AML.T0054" in content  # jailbreak's ATLAS technique id
 
 
 def test_write_reports_writes_every_requested_format(tmp_path: Path) -> None:

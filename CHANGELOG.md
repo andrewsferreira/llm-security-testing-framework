@@ -26,6 +26,14 @@ Enterprise-hardening pass on top of the 0.1.0 build — see `docs/architecture-r
   always `INFO`). `core/engine.py` no longer prints anything itself; it returns data and the
   CLI renders it, which is what makes `--json` a real separate code path instead of scraped
   human-readable text.
+- **Added a MITRE ATLAS mapping alongside the existing OWASP LLM Top 10 mapping.**
+  `AttackSuiteInfo` gained `atlas_technique_id`/`atlas_technique_name`/`atlas_tactic`, populated
+  for all 9 attack categories against the public ATLAS matrix. Best-effort where ATLAS's
+  attacker-TTP framing doesn't map precisely onto a category (documented in
+  `attacks/base.py`). Surfaced in every reporter: a `framework_mappings` key in the JSON
+  report, two new columns in the Markdown/HTML category-distribution table, and
+  `owaspLlmReference`/`atlasTechniqueId`/`atlasTechniqueName`/`atlasTactic` rule properties in
+  the SARIF report.
 
 ## [0.1.0] — Unreleased
 

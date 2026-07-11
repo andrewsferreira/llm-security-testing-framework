@@ -1,6 +1,7 @@
 """Reference catalog of the 9 attack categories (title, description, payload file, OWASP LLM
-Top 10 mapping). The actual test cases live in payloads/*.yaml and are loaded by
-core/registry.py; this catalog is descriptive metadata used by docs and reporters."""
+Top 10 mapping, MITRE ATLAS technique/tactic mapping). The actual test cases live in
+payloads/*.yaml and are loaded by core/registry.py; this catalog is descriptive metadata used
+by docs and reporters."""
 
 from __future__ import annotations
 
