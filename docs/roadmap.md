@@ -26,15 +26,15 @@ allows.
 ## Plausible later
 
 - **A `list-suites` CLI command** surfacing `attacks.ATTACK_CATALOG` (title, description, OWASP
-  mapping) directly, rather than only through `list-tests`.
-- **Parallel campaign comparison** — a CLI command that runs the same suite against two targets
-  (or two configs) and diffs the results, instead of comparing two separately-generated reports
-  by hand as the current demo does.
+  + MITRE ATLAS mapping) directly, rather than only through `list-tests`.
 - **A pluggable rate-limiter strategy** beyond the current fixed requests/second cap (e.g.
   token-bucket with burst allowance).
 - **Additional target adapters** for other common agent-framework response shapes (LangChain,
-  LlamaIndex callback formats) alongside the existing generic HTTP envelope and the OpenAI/
-  Anthropic-native provider adapter.
+  LlamaIndex callback formats) alongside the existing generic HTTP envelope and the 8-provider
+  native adapter (`docs/target-integration.md`).
+- **A real historical store for the dashboard** (SQLite) instead of the current "read whatever
+  `results.json` files exist under a directory" approach — only worth it past the scale where
+  re-scanning a directory each time stops being fast enough; not needed yet.
 
 ## Explicitly not planned
 

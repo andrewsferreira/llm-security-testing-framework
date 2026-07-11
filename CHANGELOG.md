@@ -9,6 +9,14 @@ Enterprise-hardening pass on top of the 0.1.0 build — see `docs/architecture-r
 `TASKS.md` for the full assessment and tracked backlog this is drawn from.
 
 ### Changed
+- **Documentation rewrite**: `README.md` and `docs/architecture.md` updated to reflect
+  everything shipped since the 0.1.0 build (8 providers, OWASP+ATLAS mapping, `compare`/
+  `dashboard`, GitHub/OSS hygiene, golden tests). New `docs/extending-llmsec.md` documents the
+  three real extension points (targets, evaluators, reporters) and the Python API surface,
+  honestly noting there's no dynamic plugin-discovery mechanism. New
+  `examples/custom_evaluator.py`. `docs/roadmap.md` had completed items removed;
+  `docs/portfolio-demo.md`'s manual JSON-diff step replaced with the real `llmsec compare`/
+  `dashboard` commands.
 - **`TargetConfig` is now a discriminated union** (`GenericHttpTargetConfig` /
   `MockTargetConfig` / `ProviderTargetConfig`) instead of one flat model with every target
   type's fields bolted on. `Target` is generic over its config type, so each concrete target's

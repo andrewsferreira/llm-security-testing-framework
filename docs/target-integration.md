@@ -51,8 +51,8 @@ of dict/list it finds.
 If your API's request shape can't be matched by renaming a couple of fields (e.g., it expects a
 full OpenAI-style `messages` array rather than `{message, history}`), you have two options:
 adapt your API with a thin translation layer in front of it, or write a new `Target`
-implementation (see below) — that's exactly what `provider_adapter.py` does for
-OpenAI/Anthropic's own APIs.
+implementation (see below) — that's exactly what `provider_adapter.py` does for the 8
+providers it speaks natively.
 
 ### Safety guards that apply regardless of shape
 

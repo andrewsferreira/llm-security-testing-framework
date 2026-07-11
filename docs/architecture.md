@@ -49,10 +49,12 @@ Keeping the lab and the framework independent means:
 | `core/evidence.py` | Builds a `TestResult` from a `TestCase` + response + evaluator outcome, applying redaction |
 | `core/scoring.py` | Risk scoring and campaign-level summarization |
 | `core/engine.py` | Orchestrates the above into `llmsec scan` and `llmsec report` |
+| `core/comparison.py` | Builds a `CampaignComparison` from 2+ completed campaigns (`llmsec compare`) |
+| `core/dashboard.py` | Aggregates every campaign report found under a directory into a `DashboardData` (`llmsec dashboard`); reuses `core/comparison.py`'s per-campaign entry logic |
 | `attacks/` | Reference metadata (title, description, OWASP LLM Top 10 + MITRE ATLAS mapping) per category — not executable logic |
 | `evaluators/` | Pluggable verdict logic: `keyword`, `regex`, `semantic`, `policy`, `composite` |
 | `targets/` | `generic_http` (any HTTP target), `mock_target` (in-process, for fast tests), `provider_adapter` (optional, 8 providers — see `docs/target-integration.md`) |
-| `reporters/` | Renders a `Campaign` + its summary into JSON/Markdown/HTML/SARIF |
+| `reporters/` | Renders a `Campaign` + its summary into JSON/Markdown/HTML/SARIF; also home to `comparison_reporter.py`, `dashboard_reporter.py`, and `charts.py` (shared CDN-free inline-SVG chart helpers) |
 | `utils/` | Redaction, retry, identifiers, serialization, URL safety — small, dependency-free helpers |
 
 ## Execution flow (`llmsec scan`)
@@ -76,6 +78,29 @@ Keeping the lab and the framework independent means:
 9. The CLI exits `0` if there were no findings, `1` if there were, `2` for usage errors, `3` for
    target errors (see `constants.ExitCode`).
 
+## Other CLI flows: `compare`, `dashboard`, and `report`
+
+Three commands work from already-written `results.json` files rather than running a new
+campaign, sharing `core/engine.py`'s `load_campaign_from_json`:
+
+- **`llmsec report --input <path>`** re-renders report formats from one saved campaign — useful
+  after editing a template, or to generate a format you didn't request at scan time.
+- **`llmsec compare --input <a> --input <b> [...]`** loads 2+ campaigns, builds a
+  `CampaignComparison` (`core/comparison.py`) keyed by a short label — `provider:model` for a
+  provider target, else its base URL — and renders it (Markdown/HTML/JSON) side by side:
+  pass/fail counts, severity distribution, and category distribution per campaign.
+- **`llmsec dashboard --reports-dir <dir>`** recursively finds every `results.json` under a
+  directory, aggregates all of them into a `DashboardData` (`core/dashboard.py`, which reuses
+  `core/comparison.py`'s per-campaign entry builder), and renders a single self-contained HTML
+  page: overview cards, a findings-trend-over-time chart, a per-campaign table, and aggregate
+  severity/category charts. Computed fresh from whatever's on disk each run — no database, no
+  persistent service (a deliberate choice, not a placeholder for one).
+
+Both `compare` and `dashboard`'s HTML output embed CDN-free inline SVG charts
+(`reporters/charts.py`) — no charting library, no external script, consistent with the
+single-campaign HTML report's own "no external stylesheets/fonts/scripts" property. Chart colors
+reference the page's own CSS custom properties rather than hardcoded hex values.
+
 ## Concurrency model
 
 `core/runner.py` uses a plain `asyncio.Queue` of test cases drained by
@@ -96,3 +121,20 @@ targets can use without writing any new code at all.
 Implement `evaluators/base.py`'s `Evaluator` protocol and call `register_evaluator("name", ...)`
 in `evaluators/__init__.py`. See `docs/creating-test-cases.md` for the `evaluator_config` shape
 each built-in evaluator expects.
+
+## Adding a new reporter format
+
+Write a `render(campaign: Campaign, summary: CampaignSummary) -> str` function (see any of
+`reporters/json_reporter.py`/`markdown_reporter.py`/`html_reporter.py`/`sarif_reporter.py` for
+the shape) and add it to `RENDERERS`/`FILE_NAMES` in `reporters/__init__.py`. Unlike evaluators,
+this isn't a runtime-registered plugin point today — it's a static dict you extend by editing
+it directly, documented honestly as such in `docs/extending-llmsec.md` rather than oversold as
+a discovery-based plugin system.
+
+## Extending llmsec further
+
+`docs/extending-llmsec.md` is the single place that ties the three extension points above
+together with complete, runnable examples (`examples/custom_target.py`,
+`examples/custom_evaluator.py`, `examples/custom_test.py`) and a reference to the Python API
+surface (`Config`, `Campaign`, `TestResult`, `run_campaign`, `build_target`, ...) someone
+building on top of llmsec — rather than just running its CLI — would actually import.

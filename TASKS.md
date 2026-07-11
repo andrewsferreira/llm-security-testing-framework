@@ -228,10 +228,50 @@ prerequisites on others, e.g. providers depend on the config refactor).
       strict/bandit/pip-audit clean (`bandit`/`mypy` also spot-checked against `scripts/`
       directly, even though neither's CI job scopes there today).
 
-## Phase I — Documentation rewrite *(deliberately last)*
+## Phase I — Documentation rewrite *(deliberately last)* ✅ DONE
 
-- [ ] Update `README.md`, `docs/architecture.md`, and add plugin-development/API docs once the
-      structure above has actually settled — documenting a moving target wastes the rewrite.
+- [x] **`README.md`**: Key Capabilities refreshed (8 providers incl. Bedrock SigV4, OWASP+ATLAS
+      per finding, `compare`/`dashboard`); Test Categories table gained a MITRE ATLAS column;
+      new "Comparing campaigns and the dashboard" section; "Creating a custom target" replaced
+      by a broader "Extending llmsec" section; "CI/CD integration" renamed "CI/CD and repo
+      hygiene" and now covers Dependabot/CODEOWNERS/issue templates/pre-commit; a golden-tests
+      pointer added under "Creating custom test cases."
+- [x] **`docs/architecture.md`**: package-layout table gained `core/comparison.py`,
+      `core/dashboard.py`, and the `reporters/` row now names `charts.py`/
+      `comparison_reporter.py`/`dashboard_reporter.py`; new "Other CLI flows: compare,
+      dashboard, and report" section; new "Adding a new reporter format" and "Extending llmsec
+      further" sections.
+- [x] **New `docs/extending-llmsec.md`** — the "plugin-development/API docs" this phase asked
+      for, framed honestly: there is no dynamic plugin-discovery mechanism (no entry points,
+      no auto-loaded `plugins/` dir). Documents the three real extension points as they
+      actually exist — targets (implement `Target`), evaluators (a genuine runtime registry,
+      `register_evaluator`), reporters (a static dict you edit directly, explicitly named as
+      *less* pluggable than evaluators, not oversold) — plus a Python API surface reference
+      table (`config.load_config`, `core.engine.run_campaign`, `core.comparison.compare_campaigns`,
+      `core.dashboard.build_dashboard`, etc.) for using llmsec as a library.
+- [x] **New `examples/custom_evaluator.py`** — a length-heuristic evaluator registered under a
+      new name, exercised against the real lab in both modes so it visibly reaches a different
+      verdict in each (reuses JBK-001's prompt: 119-char vulnerable-mode reply vs. 66-char
+      hardened-mode refusal, straddling the 80-char threshold on purpose). Run for real
+      (`python examples/custom_evaluator.py`) — output confirmed `failed`/`passed` as designed,
+      not asserted from memory.
+- [x] **`docs/roadmap.md`** refreshed: removed "Parallel campaign comparison" (shipped in
+      Phases E/F) and the stale "OpenAI/Anthropic-native" phrasing (now 8 providers); added a
+      dashboard-persistence-store item under "Plausible later" (SQLite, explicitly not needed
+      yet).
+- [x] **`docs/portfolio-demo.md`** step 7 replaced: a manual `python -c "import json..."` diff
+      of two report files is now the real `llmsec compare` command (plus a new step 7b for
+      `llmsec dashboard`). **Verified live, and this caught a real environment issue**: two
+      lab instances left running on the same port from job-control commands that don't persist
+      the way they would in one continuous terminal session meant a "hardened" scan was
+      silently still hitting the vulnerable-mode server. Not a bug in `llmsec compare`/the
+      lab — cleaned up the stray processes, reran on distinct ports, and confirmed `compare`
+      correctly showed 65 failed vs. 0 failed once both servers were actually in the modes
+      claimed.
+- [x] Minor stale-reference cleanup: `docs/target-integration.md`'s "OpenAI/Anthropic's own
+      APIs" phrasing updated to "the 8 providers it speaks natively."
+- [x] 327 tests (unchanged — this phase is docs/examples, not source), ruff/mypy/bandit/
+      pip-audit clean, `pre-commit run --all-files` passing.
 
 ## Phase J — Article + demo script *(final step)*
 

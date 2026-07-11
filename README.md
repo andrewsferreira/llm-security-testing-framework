@@ -45,11 +45,17 @@ unmitigated and a mitigated target on the exact same test suite.
 - **An async execution engine** — bounded concurrency, per-test timeout, retry with backoff,
   optional rate limiting, and stop-on-critical.
 - **4 report formats** — JSON, Markdown, a self-contained filterable HTML report, and SARIF
-  2.1.0 (for GitHub code scanning).
+  2.1.0 (for GitHub code scanning). Every finding carries both an OWASP LLM Top 10 and a MITRE
+  ATLAS mapping.
 - **A documented risk-scoring model** — explicit formula, explicitly labeled as a lab heuristic,
   not an industry standard.
 - **Target-agnostic** — a configurable generic HTTP envelope for your own API, plus an optional
-  adapter that speaks OpenAI's/Anthropic's native chat APIs directly.
+  provider adapter speaking 8 providers' native APIs directly: OpenAI, Anthropic, Gemini, Azure
+  OpenAI, Ollama, Mistral, AWS Bedrock (real SigV4 signing, no `boto3`), and OpenRouter.
+- **Compare campaigns and track trends** — `llmsec compare` diffs 2+ completed campaigns
+  side by side (e.g. two providers, or vulnerable vs. hardened); `llmsec dashboard` aggregates
+  every report under a directory into one page with a findings-trend chart. Both computed
+  fresh from disk each run — no database.
 - **SSRF-aware by default** — refuses non-local targets unless you explicitly opt in.
 - **Fully containerized** — Docker images for both the framework and the lab, a Docker Compose
   stack, and GitHub Actions for CI, security scanning, and releases.
@@ -69,17 +75,22 @@ llmsec CLI → engine → registry (loads payloads/*.yaml)
 
 ## Test categories
 
-| Category | What it tests | OWASP LLM mapping |
-| --- | --- | --- |
-| Direct Prompt Injection | Explicit attempts to override/ignore/bypass instructions | LLM01 |
-| Indirect Prompt Injection | Instructions embedded in untrusted content (documents, tool output) | LLM01 |
-| Jailbreak | Roleplay, hypotheticals, encoding, authority impersonation, multi-turn escalation | LLM01 |
-| System Prompt Leakage | Extracting hidden instructions, internal rules, tool descriptions | LLM07 |
-| Data Exfiltration | Extracting in-context secrets directly, by transformation, or across turns | LLM02 |
-| Tool Abuse | Unauthorized/out-of-scope tool calls, path traversal, disallowed destinations | LLM06 |
-| Context Manipulation | Poisoning conversational memory, false facts, role/task redefinition | LLM01 |
-| Insecure Output Handling | Whether output is dangerous if consumed unescaped downstream | LLM05 |
-| Excessive Agency | Acting without confirmation, chaining unrequested actions | LLM06 |
+Both mappings are also in `attacks.ATTACK_CATALOG` (see `docs/extending-llmsec.md`) and surfaced
+per finding in every report format. The MITRE ATLAS fit is closer for the prompt-injection
+family than for the two consumer-side categories (documented honestly in `attacks/base.py`
+rather than forced to look precise) — see `docs/architecture-review.md`.
+
+| Category | What it tests | OWASP LLM | MITRE ATLAS |
+| --- | --- | --- | --- |
+| Direct Prompt Injection | Explicit attempts to override/ignore/bypass instructions | LLM01 | AML.T0051.000 |
+| Indirect Prompt Injection | Instructions embedded in untrusted content (documents, tool output) | LLM01 | AML.T0051.001 |
+| Jailbreak | Roleplay, hypotheticals, encoding, authority impersonation, multi-turn escalation | LLM01 | AML.T0054 |
+| System Prompt Leakage | Extracting hidden instructions, internal rules, tool descriptions | LLM07 | AML.T0056 |
+| Data Exfiltration | Extracting in-context secrets directly, by transformation, or across turns | LLM02 | AML.T0057 |
+| Tool Abuse | Unauthorized/out-of-scope tool calls, path traversal, disallowed destinations | LLM06 | AML.T0053 |
+| Context Manipulation | Poisoning conversational memory, false facts, role/task redefinition | LLM01 | AML.T0051 |
+| Insecure Output Handling | Whether output is dangerous if consumed unescaped downstream | LLM05 | AML.T0048 |
+| Excessive Agency | Acting without confirmation, chaining unrequested actions | LLM06 | AML.T0048.002 |
 
 ## Quick start
 
@@ -181,6 +192,27 @@ it locally:
 open reports/run-001/campaign-*/report.html   # macOS; xdg-open on Linux
 ```
 
+## Comparing campaigns and the dashboard
+
+Two ways to look across more than one campaign, both computed fresh from whatever
+`results.json` files already exist on disk — no database, no persistent service:
+
+```bash
+llmsec compare --input reports/run-001/campaign-.../results.json \
+                --input reports/run-002/campaign-.../results.json
+open reports/comparison/comparison.html
+
+llmsec dashboard --reports-dir reports --output reports/dashboard.html
+open reports/dashboard.html
+```
+
+`compare` is for 2+ campaigns you name explicitly — different providers against the same
+suite, or a lab's vulnerable vs. hardened mode — and renders pass/fail counts, severity
+distribution, and category distribution side by side. `dashboard` recursively aggregates
+*every* report under a directory into one page: overview cards, a findings-trend-over-time
+chart, a per-campaign table, and aggregate severity/category charts. Both render CDN-free
+inline SVG charts (no charting library, no external script).
+
 ## Scoring model
 
 ```
@@ -199,13 +231,25 @@ config shapes, and — importantly — how to verify a new payload actually trig
 behavior against the bundled (rule-based) lab. `examples/custom_test.py` is a runnable example
 of defining and evaluating a test case directly in Python instead.
 
-## Creating a custom target
+A curated subset (one case per category) is additionally pinned as a golden-transcript
+regression test — not just pass/fail, but the full evidence/explanation/risk_score — so a
+wording or scoring regression shows up even when the status stays correct. See
+[`tests/fixtures/golden/README.md`](tests/fixtures/golden/README.md).
 
-Implement one async method (`Target.send`) to integrate with anything the generic HTTP envelope
-can't already express — see [`docs/target-integration.md`](docs/target-integration.md) and
-`examples/custom_target.py` for a complete, runnable example.
+## Extending llmsec
 
-## CI/CD integration
+Three real extension points — custom targets, custom evaluators, custom report formats — plus
+the Python API surface for using llmsec as a library instead of (or alongside) its CLI, all in
+one place: [`docs/extending-llmsec.md`](docs/extending-llmsec.md). Quick pointers:
+
+- **Custom target** — implement one async method (`Target.send`) to integrate with anything
+  the generic HTTP envelope can't already express. See
+  [`docs/target-integration.md`](docs/target-integration.md) and `examples/custom_target.py`.
+- **Custom evaluator** — a genuine runtime registry: implement `Evaluator.evaluate` and call
+  `register_evaluator("name", ...)`, no changes to llmsec's own source needed. See
+  `examples/custom_evaluator.py`.
+
+## CI/CD and repo hygiene
 
 Three GitHub Actions workflows ship in this repo:
 
@@ -214,6 +258,11 @@ Three GitHub Actions workflows ship in this repo:
   Gitleaks, Hadolint on both Dockerfiles.
 - **`.github/workflows/release.yml`** — tag-triggered build + changelog + GitHub release. PyPI
   publishing is present but commented out and requires an explicit secret — never automatic.
+
+Plus the OSS-repo housekeeping you'd expect: `.github/dependabot.yml` (weekly pip/
+github-actions/docker updates), `.github/CODEOWNERS`, structured issue/PR templates, and
+`.pre-commit-config.yaml` (ruff + mypy, mirroring CI — `pre-commit install` after `pip install
+-e ".[dev]"`).
 
 The SARIF report format (`reporters/sarif_reporter.py`) is meant to plug into the same code
 scanning pipeline these workflows use, alongside Bandit's own SARIF output.

@@ -7,14 +7,16 @@ the virtualenv activated (`pip install -e ".[dev]"` already done).
 
 "This is a security testing framework for LLM-backed chatbots and agents — prompt injection,
 jailbreaks, system-prompt leakage, data exfiltration, tool abuse, and five more categories,
-modeled on the OWASP LLM Top 10. It ships with its own local target to scan, so the whole thing
-runs end-to-end with no API keys and no external dependencies."
+modeled on the OWASP LLM Top 10 and mapped to MITRE ATLAS. It ships with its own local target to
+scan, so the whole thing runs end-to-end with no API keys and no external dependencies."
 
 ## 2. Architecture (30s, talk + optionally show `docs/architecture.md`)
 
 "Three independent pieces: the framework (the `llmsec` CLI and engine), a bundled lab — a fake
 chatbot that can run in a vulnerable or a hardened mode — and 65 test cases as YAML data, not
-code. The framework can point at the bundled lab or at any real HTTP-based chat/agent API."
+code. The framework can point at the bundled lab, at your own HTTP-based chat/agent API, or
+speak 8 LLM providers' native APIs directly — OpenAI, Anthropic, Gemini, Azure OpenAI, Ollama,
+Mistral, Bedrock, OpenRouter — none of that required to use it."
 
 ## 3. Start the lab in vulnerable mode
 
@@ -59,19 +61,29 @@ Expect: all 65 tests, 65 passed, 0 failed, exit code `0`.
 ## 7. Compare the two runs
 
 ```bash
-python3 -c "
-import json, glob
-vuln = json.load(open(glob.glob('reports/demo-vulnerable/campaign-*/results.json')[0]))
-hard = json.load(open(glob.glob('reports/demo-hardened/campaign-*/results.json')[0]))
-print('vulnerable failed:', vuln['summary']['failed'])
-print('hardened failed:', hard['summary']['failed'])
-"
+llmsec compare \
+  --input reports/demo-vulnerable/campaign-*/results.json \
+  --input reports/demo-hardened/campaign-*/results.json \
+  --output reports/demo-comparison
+open reports/demo-comparison/comparison.html
 ```
 
 "Same 65 test cases, same framework, same suite. The only thing that changed is the target's own
 mitigations — authorization checks on tool calls, refusing to echo the system prompt, refusing
-to treat retrieved-document content as instructions. That's the demonstration: the framework
-finds real, specific differences in behavior, not just 'something changed.'"
+to treat retrieved-document content as instructions. `llmsec compare` puts the two runs side by
+side: pass/fail counts, severity distribution, category distribution — the framework finds
+real, specific differences in behavior, not just 'something changed.'"
+
+## 7b. (Optional) The dashboard, aggregating both runs
+
+```bash
+llmsec dashboard --reports-dir reports --output reports/dashboard.html
+open reports/dashboard.html
+```
+
+"Same idea, but for however many reports exist under a directory, not just two named ones —
+overview cards, a findings-trend chart, and a per-campaign table. Computed fresh from disk each
+time; no database, nothing to stand up."
 
 ## 8. (Optional) The same thing, fully containerized
 
@@ -97,4 +109,5 @@ a static host check, not DNS-aware — documented, not silently glossed over."
 
 "`docs/threat-model.md` for the STRIDE analysis, `docs/scoring-model.md` for exactly how the
 risk score is computed and why it's a lab heuristic, `payloads/*.yaml` for the actual test
-content, and the two Medium articles in `docs/` for the full writeup."
+content, `docs/extending-llmsec.md` for writing a custom target/evaluator or using this as a
+library instead of a CLI, and the two Medium articles in `docs/` for the full writeup."
