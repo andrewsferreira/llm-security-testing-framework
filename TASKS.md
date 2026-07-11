@@ -87,13 +87,42 @@ prerequisites on others, e.g. providers depend on the config refactor).
       inspected the generated `report.md`/`report.html`/`results.json` directly. 269 tests
       (6 new), ruff/mypy strict/bandit/pip-audit clean.
 
-## Phase D — Provider expansion *(after Phase A)*
+## Phase D — Provider expansion *(after Phase A)* ✅ DONE
 
-- [ ] Gemini, Azure OpenAI, Ollama, Mistral, Bedrock, OpenRouter adapters — each optional, each
-      gated on its own credential env var, none required to use the framework (matches the
-      existing OpenAI/Anthropic adapter's already-reviewed-and-approved philosophy).
-- [ ] A shared contract test asserting no provider adapter ever logs/persists its raw
-      credential, run against every provider adapter uniformly.
+- [x] Added Gemini, Azure OpenAI, Ollama, Mistral, Bedrock, OpenRouter adapters alongside the
+      existing OpenAI/Anthropic pair (8 providers total) — each optional, each gated on its own
+      credential env var, none required to use the framework.
+      - `provider_adapter.py` refactored from an if/elif dispatch to per-provider
+        `_BUILDERS`/`_EXTRACTORS` dispatch tables (a request-builder + a response-extractor
+        function per provider), so adding a 9th provider means adding one table entry each, not
+        growing a conditional chain.
+      - **`ollama`** is the one provider where a missing credential is *not* an error — a
+        default local Ollama install has no auth at all. `auth_token_env` is still a required
+        schema field for consistency, but an unset env var just omits the `Authorization`
+        header rather than raising.
+      - **`azure_openai`** reuses `model` as the deployment name (how Azure actually addresses
+        models) and gained an `api_version` field (default `2024-02-15-preview`).
+      - **`bedrock`** is the one provider whose credential shape doesn't fit "one bearer
+        token": AWS SigV4 needs an access key ID + secret key pair (+ optional session token) +
+        region. Implemented real SigV4 request signing by hand with stdlib `hmac`/`hashlib` (no
+        `boto3` dependency, consistent with the project's no-mandatory-SDK philosophy) against
+        the Bedrock Converse API. `ProviderTargetConfig` gained `aws_access_key_id_env`
+        (required — enforced by a `model_validator` — whenever `provider: bedrock`),
+        `aws_session_token_env` (optional), and `aws_region`.
+      - `ProviderName` extended to the 8-way `Literal`; `PROVIDERS_WITHOUT_REQUIRED_AUTH`
+        (currently just `{"ollama"}`) added to `models/target.py` as the single source of truth
+        for that exception.
+- [x] Added a shared contract test
+      (`tests/unit/test_provider_credentials_contract.py`), parametrized over all 8 providers:
+      each provider's raw credential is confirmed to authenticate the outgoing request, then
+      asserted absent from `TargetResponse.text`/`.raw` (what actually flows into
+      `TestResult`/reports via `core/evidence.py`) and absent from every captured log record.
+      Bedrock's SigV4 case is asserted differently (a derived signature is present, not the raw
+      secret — the whole point of SigV4 is that the secret itself never goes over the wire).
+- [x] Verified end-to-end through the real CLI, not just unit tests: `llmsec validate-config`
+      against a `gemini` config (accepted) and an intentionally-incomplete `bedrock` config
+      (correctly rejected at config-validation time with a clear error naming the missing
+      field). 286 tests (17 new), ruff/mypy strict/bandit/pip-audit clean, ~94% coverage.
 
 ## Phase E — Reporting enhancements *(after C, D)*
 

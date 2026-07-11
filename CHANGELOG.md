@@ -26,6 +26,17 @@ Enterprise-hardening pass on top of the 0.1.0 build — see `docs/architecture-r
   always `INFO`). `core/engine.py` no longer prints anything itself; it returns data and the
   CLI renders it, which is what makes `--json` a real separate code path instead of scraped
   human-readable text.
+- **Provider adapter expanded from 2 to 8 providers**: `openai`, `anthropic` (existing) plus
+  `gemini`, `azure_openai`, `ollama`, `mistral`, `bedrock`, `openrouter`. Each is optional and
+  gated on its own credential env var — none required to use the framework. `ollama` is the one
+  exception where a missing credential isn't an error (a default local install has no auth).
+  `bedrock` uses real AWS SigV4 request signing, implemented by hand with stdlib
+  `hmac`/`hashlib` (no `boto3` dependency) against the Bedrock Converse API, since its
+  credential shape (access key ID + secret + region) doesn't fit the shared bearer-token model.
+  `provider_adapter.py` was refactored from an if/elif dispatch to per-provider builder/
+  extractor dispatch tables. Added a shared contract test, parametrized over all 8 providers,
+  asserting each one's raw credential authenticates the request but never ends up in
+  `TargetResponse`/reports or in any log record.
 - **Added a MITRE ATLAS mapping alongside the existing OWASP LLM Top 10 mapping.**
   `AttackSuiteInfo` gained `atlas_technique_id`/`atlas_technique_name`/`atlas_tactic`, populated
   for all 9 attack categories against the public ATLAS matrix. Best-effort where ATLAS's

@@ -73,15 +73,16 @@ you'd point at your own target — there's no "mock" version of an arbitrary API
 
 ## `provider` (optional — talk to a real LLM provider's own API)
 
-Entirely optional, and never required to use this framework. Speaks OpenAI's or Anthropic's
-native chat-completions shape directly via `httpx` (no provider SDK dependency), for when you'd
-rather point llmsec straight at a provider than stand up your own wrapper API:
+Entirely optional, and never required to use this framework. Speaks a provider's native chat API
+shape directly via `httpx` (no provider SDK dependency), for when you'd rather point llmsec
+straight at a provider than stand up your own wrapper API. Eight providers are supported:
+`openai`, `anthropic`, `gemini`, `azure_openai`, `ollama`, `mistral`, `bedrock`, `openrouter`.
 
 ```yaml
 target:
   type: provider
-  base_url: https://api.openai.com     # or https://api.anthropic.com
-  provider: openai                      # or anthropic
+  base_url: https://api.openai.com
+  provider: openai
   model: gpt-4o-mini
   auth_token_env: OPENAI_API_KEY
   system_prompt: "You are a customer support agent for Acme Corp."  # optional
@@ -91,10 +92,47 @@ security:
 ```
 
 Requires the named environment variable to actually be set (`TargetError` if not, at
-construction time, before any request is made). `document`/`tool` conversation turns (used to
-simulate indirect prompt injection) have no native equivalent in these APIs' message roles, so
-they're sent as user messages labeled `[DOCUMENT CONTENT]` / `[TOOL CONTENT]` — a reasonable but
-lossy approximation, called out here rather than left implicit.
+construction time, before any request is made) — except `ollama`, see below. `document`/`tool`
+conversation turns (used to simulate indirect prompt injection) have no native equivalent in any
+of these APIs' message roles, so they're sent as user messages labeled `[DOCUMENT CONTENT]` /
+`[TOOL CONTENT]` — a reasonable but lossy approximation, called out here rather than left
+implicit, applied uniformly across all 8 providers.
+
+### Per-provider notes
+
+- **`openai` / `anthropic` / `mistral` / `openrouter`** — a single bearer-token API key via
+  `auth_token_env`. `openrouter`'s `base_url` should include its `/api/v1` prefix (e.g.
+  `https://openrouter.ai/api/v1`), and `model` is an OpenRouter-qualified model id (e.g.
+  `openai/gpt-4o-mini`).
+- **`gemini`** — API key sent as the `x-goog-api-key` header (not a bearer token).
+  `base_url: https://generativelanguage.googleapis.com`, `model` is a Gemini model id (e.g.
+  `gemini-1.5-flash`).
+- **`azure_openai`** — Azure addresses a deployment, not a model name directly, so `model` here
+  means your **deployment name**. `base_url` is your resource endpoint (e.g.
+  `https://<resource>.openai.azure.com`); an optional `api_version` field defaults to
+  `2024-02-15-preview`.
+- **`ollama`** — for a local/self-hosted server. `auth_token_env` is still a required *field*
+  (schema-level, for consistency with every other provider), but a missing/unset env var is
+  **not** an error for this one provider — the request is simply sent with no `Authorization`
+  header, matching how a default local Ollama install has no auth at all. If yours sits behind a
+  reverse proxy that does require a bearer token, set the env var and it's used.
+- **`bedrock`** — request signing is AWS SigV4 (implemented by hand with stdlib
+  `hmac`/`hashlib`, no `boto3` dependency), not a static header, so it needs more than
+  `auth_token_env` alone:
+  ```yaml
+  target:
+    type: provider
+    base_url: https://bedrock-runtime.us-east-1.amazonaws.com
+    provider: bedrock
+    model: anthropic.claude-3-haiku-20240307-v1:0   # a Bedrock model id
+    auth_token_env: AWS_SECRET_ACCESS_KEY            # paired secret access key
+    aws_access_key_id_env: AWS_ACCESS_KEY_ID         # required when provider is bedrock
+    aws_region: us-east-1                             # default shown
+  ```
+  `aws_access_key_id_env` is required by the schema whenever `provider: bedrock` — validated at
+  config-load time, not at first request. `aws_session_token_env` is optional, for
+  temporary/STS credentials. Speaks the Bedrock Converse API (`/model/{model}/converse`), which
+  is uniform across every model family Bedrock hosts.
 
 ## Writing a new `Target` from scratch
 

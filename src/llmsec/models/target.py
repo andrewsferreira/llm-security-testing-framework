@@ -11,7 +11,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class TargetType(StrEnum):
@@ -20,7 +20,22 @@ class TargetType(StrEnum):
     PROVIDER = "provider"
 
 
-ProviderName = Literal["openai", "anthropic"]
+ProviderName = Literal[
+    "openai",
+    "anthropic",
+    "gemini",
+    "azure_openai",
+    "ollama",
+    "mistral",
+    "bedrock",
+    "openrouter",
+]
+
+# Providers that don't require a credential at all (a local, unauthenticated Ollama server is
+# the common case). Every other provider's `auth_token_env` must resolve to a non-empty
+# environment variable at construction time; for these, a missing/unset value is not an error —
+# see targets/provider_adapter.py.
+PROVIDERS_WITHOUT_REQUIRED_AUTH: frozenset[ProviderName] = frozenset({"ollama"})
 
 
 class BaseTargetConfig(BaseModel):
@@ -75,7 +90,31 @@ class ProviderTargetConfig(BaseTargetConfig):
     system_prompt: str | None = None
     # Required (not the optional inherited default): a provider target is useless without a
     # credential source, so this fails at config-validation time rather than at first request.
+    # The one exception is `ollama` (see PROVIDERS_WITHOUT_REQUIRED_AUTH) — the env var still
+    # must be *named* here, but it's allowed to be unset at runtime for that provider.
     auth_token_env: str = Field(min_length=1)
+
+    # Azure OpenAI only: the REST API version query parameter and the deployment name (Azure
+    # addresses models by deployment, not by model name — `model` above is used as the
+    # deployment name for this provider).
+    api_version: str = "2024-02-15-preview"
+
+    # AWS Bedrock only: request signing is AWS SigV4, not a static bearer/api-key header, so it
+    # needs more than the shared `auth_token_env`. `auth_token_env` doubles as the AWS secret
+    # access key's env var name for this provider; `aws_access_key_id_env` names the paired
+    # access key ID env var. `aws_session_token_env` is optional, for temporary/STS credentials.
+    aws_access_key_id_env: str | None = None
+    aws_session_token_env: str | None = None
+    aws_region: str = "us-east-1"
+
+    @model_validator(mode="after")
+    def _bedrock_requires_access_key_id_env(self) -> ProviderTargetConfig:
+        if self.provider == "bedrock" and not self.aws_access_key_id_env:
+            raise ValueError(
+                "aws_access_key_id_env is required when provider is 'bedrock' (in addition to "
+                "auth_token_env, which holds the paired AWS secret access key's env var name)."
+            )
+        return self
 
 
 TargetConfig = Annotated[

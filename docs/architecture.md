@@ -49,9 +49,9 @@ Keeping the lab and the framework independent means:
 | `core/evidence.py` | Builds a `TestResult` from a `TestCase` + response + evaluator outcome, applying redaction |
 | `core/scoring.py` | Risk scoring and campaign-level summarization |
 | `core/engine.py` | Orchestrates the above into `llmsec scan` and `llmsec report` |
-| `attacks/` | Reference metadata (title, description, OWASP LLM Top 10 mapping) per category — not executable logic |
+| `attacks/` | Reference metadata (title, description, OWASP LLM Top 10 + MITRE ATLAS mapping) per category — not executable logic |
 | `evaluators/` | Pluggable verdict logic: `keyword`, `regex`, `semantic`, `policy`, `composite` |
-| `targets/` | `generic_http` (any HTTP target), `mock_target` (in-process, for fast tests), `provider_adapter` (optional, direct OpenAI/Anthropic-style APIs) |
+| `targets/` | `generic_http` (any HTTP target), `mock_target` (in-process, for fast tests), `provider_adapter` (optional, 8 providers — see `docs/target-integration.md`) |
 | `reporters/` | Renders a `Campaign` + its summary into JSON/Markdown/HTML/SARIF |
 | `utils/` | Redaction, retry, identifiers, serialization, URL safety — small, dependency-free helpers |
 
