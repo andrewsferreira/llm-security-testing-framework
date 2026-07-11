@@ -24,7 +24,9 @@ pip-audit
 ```
 
 All of the above run in CI (`.github/workflows/ci.yml`, `security.yml`); running them locally
-first saves a round trip.
+first saves a round trip. Optionally, `pre-commit install` (after `pip install -e ".[dev]"`,
+which includes `pre-commit`) wires ruff + mypy into a git pre-commit hook so this happens
+automatically — see `.pre-commit-config.yaml`.
 
 ## Adding a new attack test case
 

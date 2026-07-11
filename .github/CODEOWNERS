@@ -1,0 +1,11 @@
+# Default owner for everything not matched below.
+* @andrewsferreira
+
+# Security-sensitive areas get the same owner today, called out explicitly so it's obvious
+# these paths are expected to have a reviewer who understands the threat model, not just
+# whoever's available — see docs/threat-model.md.
+/src/llmsec/targets/ @andrewsferreira
+/src/llmsec/utils/url_safety.py @andrewsferreira
+/src/llmsec/utils/redaction.py @andrewsferreira
+/.github/workflows/ @andrewsferreira
+/SECURITY.md @andrewsferreira

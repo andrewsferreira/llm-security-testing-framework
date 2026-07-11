@@ -177,12 +177,27 @@ prerequisites on others, e.g. providers depend on the config refactor).
       per-campaign rows. 324 tests (15 new), ruff/mypy strict/bandit/pip-audit clean, ~94%
       coverage.
 
-## Phase G — GitHub/OSS polish *(no dependencies — can land anytime)*
+## Phase G — GitHub/OSS polish *(no dependencies — can land anytime)* ✅ DONE
 
-- [ ] `.github/dependabot.yml`
-- [ ] `.github/CODEOWNERS`
-- [ ] `.github/ISSUE_TEMPLATE/*`, `.github/pull_request_template.md`
-- [ ] `.pre-commit-config.yaml` (ruff + mypy locally, mirroring CI)
+- [x] `.github/dependabot.yml` — weekly updates for `pip` (dev-tooling grouped into one PR),
+      `github-actions`, and `docker` (both `/` and `/lab`, matching the two Dockerfiles).
+- [x] `.github/CODEOWNERS` — `@andrewsferreira` as default owner, with security-sensitive paths
+      (`targets/`, `url_safety.py`, `redaction.py`, workflows, `SECURITY.md`) called out
+      explicitly rather than relying on the blanket rule alone.
+- [x] `.github/ISSUE_TEMPLATE/` — structured `bug_report.yml`/`feature_request.yml` forms plus
+      `config.yml` (blank issues disabled, redirects security reports to GitHub Security
+      Advisories instead of a public issue). `.github/pull_request_template.md` with a
+      checklist mirroring what CI actually checks (ruff/mypy/pytest/bandit/pip-audit,
+      fictional-secrets-only, CHANGELOG).
+- [x] `.pre-commit-config.yaml` — ruff (lint + format) via `astral-sh/ruff-pre-commit` (pinned
+      to `v0.15.21`, matching the installed version); mypy via `language: system` rather than
+      pre-commit's isolated hook env, since mypy needs this project's actual runtime
+      dependencies importable and duplicating that list into `additional_dependencies` would
+      just be a second place for it to drift from `pyproject.toml`. Added `pre-commit` to the
+      `dev` extras; documented `pre-commit install` in `CONTRIBUTING.md`.
+      **Verified live** (not just written): installed `pre-commit`, ran
+      `pre-commit run --all-files` against the real repo — ruff, ruff-format, and mypy all
+      passed for real.
 
 ## Phase H — Golden/regression tests
 

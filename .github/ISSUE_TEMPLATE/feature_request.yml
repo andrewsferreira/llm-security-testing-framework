@@ -1,0 +1,35 @@
+name: Feature request
+description: Propose a new capability — a new attack category, provider adapter, reporter format, etc.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: What are you trying to test/report/integrate that the framework doesn't support today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: If you have one in mind. Point at the relevant doc if this extends an existing pattern (e.g. `docs/creating-test-cases.md`, `docs/target-integration.md`).
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area does this touch?
+      multiple: true
+      options:
+        - Attack categories / payloads
+        - Evaluators
+        - Target adapters / providers
+        - Reporters (JSON/Markdown/HTML/SARIF)
+        - Dashboard / comparison view
+        - CLI
+        - Docs
+        - CI/CD, Docker
+        - Other
+    validations:
+      required: true

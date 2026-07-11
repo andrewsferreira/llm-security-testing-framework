@@ -37,6 +37,11 @@ Enterprise-hardening pass on top of the 0.1.0 build — see `docs/architecture-r
   extractor dispatch tables. Added a shared contract test, parametrized over all 8 providers,
   asserting each one's raw credential authenticates the request but never ends up in
   `TargetResponse`/reports or in any log record.
+- **GitHub/OSS polish**: `.github/dependabot.yml` (pip/github-actions/docker, weekly),
+  `.github/CODEOWNERS`, structured issue templates (bug report/feature request forms, security
+  reports redirected to GitHub Security Advisories) and a PR template, and
+  `.pre-commit-config.yaml` (ruff + mypy, mirroring CI) with `pre-commit` added to the `dev`
+  extras.
 - **Added a dashboard**: `llmsec dashboard --reports-dir <dir> --output <path>` aggregates every
   `results.json` found recursively under a directory into one static, self-contained HTML page
   — overview cards, a findings-trend-over-time chart, a per-campaign table, and aggregate

@@ -1,0 +1,25 @@
+# Mirrors the checks CI actually runs (.github/workflows/ci.yml) so failures surface locally,
+# before a push, instead of only in CI. See CONTRIBUTING.md for the one-time setup
+# (`pip install -e ".[dev]"`) these hooks assume is already done in your virtualenv.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.21
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # `language: system` rather than pre-commit's isolated hook env: mypy needs this project's
+  # actual runtime dependencies importable to type-check against them (fastapi, pydantic,
+  # httpx, etc.), and duplicating that dependency list into `additional_dependencies` here
+  # would just be a second place for it to drift out of sync with pyproject.toml. This is why
+  # CONTRIBUTING.md's setup step (`pip install -e ".[dev]"`) is a prerequisite for these hooks,
+  # exactly as it already is for running mypy locally without pre-commit at all.
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy src/llmsec lab
+        language: system
+        types: [python]
+        pass_filenames: false

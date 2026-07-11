@@ -1,0 +1,54 @@
+name: Bug report
+description: Something in the framework itself doesn't work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. If this is a security vulnerability in
+        llmsec itself (not a finding from scanning a target), please use [GitHub Security
+        Advisories](https://github.com/andrewsferreira/llm-security-testing-framework/security/advisories/new)
+        instead — see `SECURITY.md`.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Exact commands run (e.g. `llmsec scan --suite jailbreak --config ...`), and a minimal config/payload if relevant.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Output of the failing command with `--debug`, or the traceback. Redact anything sensitive first.
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: llmsec version
+      description: Output of `llmsec version`
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: How are you running llmsec?
+      options:
+        - "pip install (local Python)"
+        - "Docker / docker-compose"
+        - "From source (editable install)"
+    validations:
+      required: true
