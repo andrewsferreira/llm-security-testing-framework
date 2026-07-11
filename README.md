@@ -149,6 +149,7 @@ llmsec scan --target http://localhost:8000 --suite all --config configs/local.ya
 llmsec scan --target http://localhost:8000 --suite tool_abuse --config configs/local.yaml --output reports/run-002
 llmsec report --input reports/run-001/campaign-.../results.json --format html --format markdown
 llmsec compare --input reports/run-001/campaign-.../results.json --input reports/run-002/campaign-.../results.json
+llmsec dashboard --reports-dir reports --output reports/dashboard.html
 ```
 
 ## Example result

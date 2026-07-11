@@ -3,6 +3,10 @@ against several providers, or a lab's vulnerable vs. hardened mode. Reuses `core
 `summarize()` per campaign rather than duplicating its logic; this module only assembles the
 per-campaign summaries into one comparison-shaped structure for `reporters/comparison_reporter.py`
 to render.
+
+`build_comparison_entry` is also reused by `core/dashboard.py` — a dashboard is, at its core,
+"the same per-campaign entry this module builds, for however many reports exist, sorted by
+time" rather than a fundamentally different computation.
 """
 
 from __future__ import annotations
@@ -51,33 +55,34 @@ class CampaignComparison(BaseModel):
     categories: list[str]
 
 
+def build_comparison_entry(campaign: Campaign) -> ComparisonEntry:
+    summary = summarize(campaign)
+    risk_scores = [f.risk_score for f in summary.findings if f.risk_score is not None]
+    average_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0.0
+
+    return ComparisonEntry(
+        campaign_id=summary.campaign_id,
+        label=campaign_label(campaign),
+        suite=summary.suite,
+        started_at=summary.started_at,
+        total_tests=summary.total_tests,
+        passed=summary.passed,
+        failed=summary.failed,
+        inconclusive=summary.inconclusive,
+        errors=summary.errors,
+        severity_distribution_findings=summary.severity_distribution_findings,
+        category_distribution_findings=summary.category_distribution_findings,
+        average_finding_risk_score=round(average_risk, 2),
+    )
+
+
 def compare_campaigns(campaigns: list[Campaign]) -> CampaignComparison:
     if len(campaigns) < 2:
         raise ValueError("compare_campaigns requires at least 2 campaigns to compare.")
 
-    entries: list[ComparisonEntry] = []
+    entries = [build_comparison_entry(campaign) for campaign in campaigns]
     categories: set[str] = set()
-    for campaign in campaigns:
-        summary = summarize(campaign)
-        categories.update(summary.category_distribution_findings)
-        risk_scores = [f.risk_score for f in summary.findings if f.risk_score is not None]
-        average_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0.0
-
-        entries.append(
-            ComparisonEntry(
-                campaign_id=summary.campaign_id,
-                label=campaign_label(campaign),
-                suite=summary.suite,
-                started_at=summary.started_at,
-                total_tests=summary.total_tests,
-                passed=summary.passed,
-                failed=summary.failed,
-                inconclusive=summary.inconclusive,
-                errors=summary.errors,
-                severity_distribution_findings=summary.severity_distribution_findings,
-                category_distribution_findings=summary.category_distribution_findings,
-                average_finding_risk_score=round(average_risk, 2),
-            )
-        )
+    for entry in entries:
+        categories.update(entry.category_distribution_findings)
 
     return CampaignComparison(entries=entries, categories=sorted(categories))

@@ -37,6 +37,12 @@ Enterprise-hardening pass on top of the 0.1.0 build — see `docs/architecture-r
   extractor dispatch tables. Added a shared contract test, parametrized over all 8 providers,
   asserting each one's raw credential authenticates the request but never ends up in
   `TargetResponse`/reports or in any log record.
+- **Added a dashboard**: `llmsec dashboard --reports-dir <dir> --output <path>` aggregates every
+  `results.json` found recursively under a directory into one static, self-contained HTML page
+  — overview cards, a findings-trend-over-time chart, a per-campaign table, and aggregate
+  severity/category charts. Computed fresh each run from whatever reports exist on disk; no
+  database, no persistent service (`core/dashboard.py` reuses `core/comparison.py`'s
+  per-campaign entry logic rather than duplicating it).
 - **Reporting enhancements**: OWASP + ATLAS mapping now surfaced per finding (not just per
   category) in JSON/Markdown/HTML. Added a **provider/campaign comparison view** —
   `core/comparison.py` + `reporters/comparison_reporter.py` + a new `llmsec compare --input

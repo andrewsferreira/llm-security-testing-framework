@@ -210,5 +210,34 @@ def compare(
     renderer.report_written(written)
 
 
+@app.command()
+def dashboard(
+    reports_dir: Path = typer.Option(
+        Path("reports"),
+        "--reports-dir",
+        help="Directory to scan recursively for results.json files.",
+    ),
+    output: Path = typer.Option(
+        Path("reports/dashboard.html"), "--output", help="Path to write the dashboard HTML page."
+    ),
+    json_output: bool = _JSON_OPTION,
+) -> None:
+    """Aggregate every campaign report found under --reports-dir into one dashboard page.
+
+    Computed fresh from whatever results.json files exist on disk each time this runs — no
+    database, no persistent service. Re-run after new scans to refresh."""
+    from llmsec.core.engine import build_dashboard_report
+
+    renderer = get_renderer(json_output=json_output)
+
+    try:
+        written_path = build_dashboard_report(reports_dir, output_path=output)
+    except LlmsecError as exc:
+        renderer.error(str(exc))
+        raise typer.Exit(code=ExitCode.USAGE_ERROR) from exc
+
+    renderer.report_written({"html": written_path})
+
+
 if __name__ == "__main__":
     app()

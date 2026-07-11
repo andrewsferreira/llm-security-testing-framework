@@ -229,3 +229,49 @@ def test_compare_command_json_output(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     assert "json" in payload["reports"]
+
+
+def test_dashboard_command_rejects_a_reports_dir_with_no_results(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["dashboard", "--reports-dir", str(tmp_path)])
+    assert result.exit_code == 2
+    assert "No results.json files found" in result.output
+
+
+def test_dashboard_command_writes_a_dashboard_page(tmp_path: Path) -> None:
+    _write_campaign_json(tmp_path / "a", campaign_id="a", base_url="http://localhost:8000")
+    _write_campaign_json(tmp_path / "b", campaign_id="b", base_url="http://localhost:8001")
+    output_path = tmp_path / "dashboard.html"
+
+    result = runner.invoke(
+        app,
+        [
+            "dashboard",
+            "--reports-dir",
+            str(tmp_path),
+            "--output",
+            str(output_path),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert output_path.is_file()
+    assert "llmsec dashboard" in output_path.read_text()
+
+
+def test_dashboard_command_json_output(tmp_path: Path) -> None:
+    _write_campaign_json(tmp_path / "a", campaign_id="a", base_url="http://localhost:8000")
+    output_path = tmp_path / "dashboard.html"
+
+    result = runner.invoke(
+        app,
+        [
+            "dashboard",
+            "--reports-dir",
+            str(tmp_path),
+            "--output",
+            str(output_path),
+            "--json",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["reports"]["html"] == str(output_path)

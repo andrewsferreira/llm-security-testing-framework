@@ -137,3 +137,21 @@ def compare_campaign_reports(
     campaigns = [load_campaign_from_json(path) for path in input_paths]
     comparison = compare_campaigns(campaigns)
     return write_comparison_reports(comparison, formats=formats, output_dir=output_dir)
+
+
+def build_dashboard_report(reports_dir: Path, *, output_path: Path) -> Path:
+    """Discovers every `results.json` under `reports_dir`, aggregates them, and writes a single
+    self-contained dashboard HTML page to `output_path`. Returns `output_path`."""
+    from llmsec.core.dashboard import build_dashboard, discover_campaign_report_paths
+    from llmsec.reporters import dashboard_reporter
+
+    report_paths = discover_campaign_report_paths(reports_dir)
+    if not report_paths:
+        raise LlmsecError(f"No results.json files found under {reports_dir}.")
+
+    campaigns = [load_campaign_from_json(path) for path in report_paths]
+    dashboard = build_dashboard(campaigns)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(dashboard_reporter.render(dashboard))
+    return output_path

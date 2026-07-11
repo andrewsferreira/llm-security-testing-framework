@@ -153,11 +153,29 @@ prerequisites on others, e.g. providers depend on the config refactor).
       correct 3-format comparison from two live scans. 309 tests (23 new), ruff/mypy strict/
       bandit/pip-audit clean, ~94% coverage.
 
-## Phase F — Dashboard *(after E)*
+## Phase F — Dashboard *(after E)* ✅ DONE
 
-- [ ] Static, CDN-free HTML dashboard aggregating whatever `reports/*/results.json` files it's
-      pointed at — computed fresh each run, no database, no persistent service. Keeps the
-      project's "no external services required" property intact.
+- [x] Static, CDN-free HTML dashboard aggregating whatever `reports/**/results.json` files it's
+      pointed at — computed fresh each run, no database, no persistent service (the "Open
+      decisions" item below is now resolved by this implementation, not just a stated intent).
+      - `core/dashboard.py`: `discover_campaign_report_paths` (recursive glob) +
+        `build_dashboard`, which reuses `core/comparison.py`'s `build_comparison_entry` (now
+        extracted as its own function) rather than duplicating per-campaign summarization —
+        a dashboard is "the same per-campaign entry, for however many reports exist, sorted by
+        time, plus an aggregate rollup."
+      - `reporters/dashboard_reporter.py` + `templates/dashboard.html.j2`: overview cards
+        (campaigns/tests/findings), a trend chart (failed findings per campaign over time,
+        colored by that campaign's average risk), a per-campaign table, and aggregate
+        severity/category bar charts.
+      - New `reporters/charts.trend_chart_svg` (vertical bars, one per campaign, colored
+        critical/high/medium/pass by average finding risk score) — reuses the same
+        CSS-custom-property-referencing, `html.escape`-defended approach as the Phase E charts.
+      - New `llmsec dashboard --reports-dir <dir> --output <path>` CLI command.
+- [x] Verified live: ran the bundled lab in vulnerable and hardened mode, executed 3 real scans
+      (varying suite/target), and generated a real dashboard from the 3 resulting campaigns —
+      confirmed "Computed fresh from 3 campaign report(s)", 3 embedded charts, and correct
+      per-campaign rows. 324 tests (15 new), ruff/mypy strict/bandit/pip-audit clean, ~94%
+      coverage.
 
 ## Phase G — GitHub/OSS polish *(no dependencies — can land anytime)*
 
@@ -192,6 +210,7 @@ prerequisites on others, e.g. providers depend on the config refactor).
 
 - ~~**CLI rename (`llmsec` → `llmstest`)**~~ — **Decided: keep `llmsec`.** The repo, package
   name, and entry point stay as already published; no rename in Phase B.
-- **Persistence for the dashboard/trend view:** confirmed default is "no database, read
-  whatever `reports/` directories you point it at" (Phase F) — flag here if you'd rather have a
-  real historical store (SQLite) instead.
+- ~~**Persistence for the dashboard/trend view**~~ — **Resolved by Phase F's implementation:**
+  no database, `llmsec dashboard --reports-dir <dir>` recursively reads whatever
+  `results.json` files already exist under it, computed fresh each run. Flag here if you'd
+  rather have a real historical store (SQLite) instead — not implemented.

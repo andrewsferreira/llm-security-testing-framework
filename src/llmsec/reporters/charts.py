@@ -17,6 +17,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from html import escape
 
+from llmsec.core.comparison import ComparisonEntry
 from llmsec.core.scoring import SeverityDistribution
 from llmsec.models.result import TestResult
 
@@ -108,5 +109,56 @@ def findings_timeline_svg(
         f'<text x="{width - 55}" y="{height - 5}" font-size="11" '
         f'style="fill:var(--muted)">{total_seconds:.1f}s</text>'
     )
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def _color_for_average_risk(average_risk: float) -> str:
+    if average_risk >= 7:
+        return "--critical"
+    if average_risk >= 4:
+        return "--high"
+    if average_risk > 0:
+        return "--medium"
+    return "--pass"
+
+
+def trend_chart_svg(entries: Sequence[ComparisonEntry]) -> str:
+    """A vertical bar chart of failed-finding counts, one bar per campaign in the given order
+    (dashboard callers pass entries pre-sorted by `started_at`), colored by that campaign's
+    average finding risk score. Empty string if there's nothing to plot."""
+    if not entries:
+        return ""
+
+    bar_width, gap = 40, 14
+    max_bar_height = 120
+    width = len(entries) * (bar_width + gap) + gap
+    height = max_bar_height + 50
+    baseline_y = height - 30
+
+    max_failed = max((e.failed for e in entries), default=0) or 1
+
+    parts = [
+        f'<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" '
+        f'role="img" aria-label="Findings trend over time">',
+        f'<line x1="{gap / 2}" y1="{baseline_y}" x2="{width - gap / 2}" y2="{baseline_y}" '
+        f'style="stroke:var(--border)" stroke-width="1"/>',
+    ]
+    for i, entry in enumerate(entries):
+        x = gap + i * (bar_width + gap)
+        bar_height = (entry.failed / max_failed) * max_bar_height if entry.failed else 0.0
+        y = baseline_y - bar_height
+        css_var = _color_for_average_risk(entry.average_finding_risk_score)
+        parts.append(
+            f'<rect x="{x}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" '
+            f'rx="3" style="fill:var({css_var})">'
+            f"<title>{escape(entry.label)} ({escape(entry.started_at.isoformat())}): "
+            f"{entry.failed} failed, avg risk {entry.average_finding_risk_score:.1f}</title>"
+            f"</rect>"
+        )
+        parts.append(
+            f'<text x="{x + bar_width / 2:.1f}" y="{height - 10}" font-size="10" '
+            f'text-anchor="middle" style="fill:var(--muted)">{i + 1}</text>'
+        )
     parts.append("</svg>")
     return "".join(parts)
