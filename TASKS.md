@@ -273,15 +273,6 @@ prerequisites on others, e.g. providers depend on the config refactor).
 - [x] 327 tests (unchanged — this phase is docs/examples, not source), ruff/mypy/bandit/
       pip-audit clean, `pre-commit run --all-files` passing.
 
-## Phase J — Article + demo script *(final step)*
-
-- [ ] Technical article: architecture, design decisions, OWASP+ATLAS, benchmarking, and an
-      honest comparison against Garak/PyRIT/DeepTeam (strengths and gaps both ways, not just
-      favorable framing).
-- [ ] Demo script (narration + exact commands + expected output). **Note:** this ships as a
-      written script/storyboard, not an actual recorded video — recording/narrating audio or
-      video is outside what I can produce.
-
 ---
 
 ## Open decisions that need your input before the affected phase starts
