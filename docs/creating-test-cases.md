@@ -166,5 +166,11 @@ When adding a payload meant to run against the lab:
    where it shows up — not as a vague "something's off," but as the exact test ID and status
    that didn't match.
 
+If your change touches one of the 9 golden test cases (the `-001` id in each category's payload
+file), `tests/integration/test_golden_transcripts.py` will also fail — it pins the *exact*
+evidence/explanation/risk_score for those, not just pass/fail, so a wording or scoring change
+shows up even when the status stays correct. See `tests/fixtures/golden/README.md` for the
+contract and how to deliberately regenerate it.
+
 Pointing llmsec at a target other than the lab doesn't have this constraint — a real LLM doesn't
 need trigger-phrase alignment, only the lab's rule-based simulator does.

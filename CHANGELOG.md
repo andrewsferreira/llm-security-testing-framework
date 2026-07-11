@@ -37,6 +37,12 @@ Enterprise-hardening pass on top of the 0.1.0 build — see `docs/architecture-r
   extractor dispatch tables. Added a shared contract test, parametrized over all 8 providers,
   asserting each one's raw credential authenticates the request but never ends up in
   `TargetResponse`/reports or in any log record.
+- **Golden/regression tests**: `tests/fixtures/golden/{vulnerable,hardened}.json` pin the full
+  result shape (not just pass/fail) for one representative test case per attack category,
+  verified by `tests/integration/test_golden_transcripts.py`. Complementary to the existing
+  full-payload-set integration test, which only checks aggregate status.
+  `scripts/regenerate_golden_fixtures.py` regenerates them deliberately when a lab/evaluator/
+  scoring change intentionally changes one of these cases.
 - **GitHub/OSS polish**: `.github/dependabot.yml` (pip/github-actions/docker, weekly),
   `.github/CODEOWNERS`, structured issue templates (bug report/feature request forms, security
   reports redirected to GitHub Security Advisories) and a PR template, and

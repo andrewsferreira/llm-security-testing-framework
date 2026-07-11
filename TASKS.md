@@ -199,11 +199,34 @@ prerequisites on others, e.g. providers depend on the config refactor).
       `pre-commit run --all-files` against the real repo — ruff, ruff-format, and mypy all
       passed for real.
 
-## Phase H — Golden/regression tests
+## Phase H — Golden/regression tests ✅ DONE
 
-- [ ] Formalize named golden-transcript fixtures with fixed seeds on top of the existing
-      lab-integration test pattern (`tests/integration/test_all_payloads_against_lab.py` already
-      does something close to this; make it an explicit, documented contract).
+- [x] Formalized named golden-transcript fixtures on top of the existing lab-integration test
+      pattern: `tests/fixtures/golden/{vulnerable,hardened}.json` pin the **full** result shape
+      (severity, status, confidence, matched indicators, evidence notes, the lab's exact
+      response, explanation, remediation, risk score) — not just pass/fail — for one
+      representative test case per attack category (the `-001` id in each `payloads/*.yaml`
+      file). `tests/integration/test_golden_transcripts.py` is the explicit, documented contract
+      this backlog item asked for: it diffs a real run against the lab in each mode against
+      these fixtures and reports exactly which field of which test id changed, not just "a test
+      failed." `tests/fixtures/golden/README.md` documents what's pinned/excluded and why, and
+      the "fixed seeds" honesty note: **the lab has no randomness anywhere** (verified — no
+      `random`/timestamp-dependent branching in `lab/app/`), so there was never a seed to fix;
+      this phase formalizes which outputs are guaranteed stable, not adds determinism that was
+      missing.
+- [x] `scripts/regenerate_golden_fixtures.py` — the deliberate-update path when a lab/evaluator/
+      scoring change intentionally changes one of the 9 golden cases. Verified live: ran it for
+      real, confirmed a clean `git diff` (byte-identical to the hand-reviewed fixtures already
+      committed), and confirmed it correctly raises if a golden id ever goes missing from
+      `payloads/`.
+      Also caught and fixed one genuine `mypy` finding surfaced only by checking `scripts/`
+      standalone (`_load_fixture` returning `Any` from a `json.loads` call) — CI's `mypy` scope
+      is `src/llmsec lab` and doesn't cover `tests/`/`scripts/`, so this wouldn't otherwise have
+      been caught; fixed with an explicit `cast`.
+- [x] 327 tests (3 new — deliberately few: this is a curated, complementary check, not a
+      replacement for `test_all_payloads_against_lab.py`'s full-set coverage), ruff/mypy
+      strict/bandit/pip-audit clean (`bandit`/`mypy` also spot-checked against `scripts/`
+      directly, even though neither's CI job scopes there today).
 
 ## Phase I — Documentation rewrite *(deliberately last)*
 
